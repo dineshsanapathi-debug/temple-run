@@ -1,0 +1,3430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Jungle Escape 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #152516;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    canvas { display: block; }
+    #hud {
+      position: fixed;
+      z-index: 3;
+      top: 14px;
+      left: 14px;
+      color: white;
+      background: rgba(16, 32, 21, 0.75);
+      padding: 12px 18px;
+      border-radius: 12px;
+      line-height: 1.6;
+      font-weight: bold;
+      font-size: 16px;
+      text-shadow: 0 2px 4px #000;
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      backdrop-filter: blur(4px);
+    }
+    #hud span { color: #ffd34e; }
+    #soundToggle {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 6;
+      background: rgba(16, 32, 21, 0.75);
+      color: white;
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+    #soundToggle:hover {
+      background: rgba(255, 215, 0, 0.25);
+      transform: scale(1.08);
+    }
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(14, 30, 20, 0.88) 0%, rgba(3, 8, 4, 0.98) 100%);
+      padding: 12px;
+      backdrop-filter: blur(8px);
+    }
+    #templePoster {
+      position: relative;
+      width: min(94vw, 440px);
+      aspect-ratio: 387 / 516;
+      max-height: 96vh;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 12px 45px rgba(0, 0, 0, 0.95), 0 0 35px rgba(255, 140, 0, 0.35);
+      border: 3px solid #7a5830;
+      background: #000;
+      user-select: none;
+    }
+    #posterImg {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+      cursor: pointer;
+    }
+    /* Fiery Pulsing PLAY! Hotspot directly over the Idol and PLAY! text */
+    .temple-play-btn {
+      position: absolute;
+      top: 66.5%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgba(255, 80, 0, 0.3) 0%, rgba(200, 30, 0, 0.12) 60%, transparent 80%);
+      border: 2px solid transparent;
+      border-radius: 30px;
+      cursor: pointer;
+      color: transparent;
+      width: 58%;
+      height: 11.5%;
+      transition: all 0.22s ease;
+      animation: playPulse 0.9s infinite alternate ease-in-out;
+      z-index: 3;
+    }
+    .temple-play-btn:hover {
+      background: radial-gradient(ellipse at center, rgba(255, 100, 0, 0.5) 0%, rgba(220, 50, 0, 0.25) 60%, transparent 80%);
+      border-color: rgba(255, 140, 0, 0.75);
+      box-shadow: 0 0 25px rgba(255, 120, 0, 0.85), inset 0 0 15px rgba(255, 80, 0, 0.4);
+      transform: translate(-50%, -50%) scale(1.06);
+    }
+    .temple-play-btn:active {
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+    @keyframes playPulse {
+      0% { transform: translate(-50%, -50%) scale(0.97); filter: drop-shadow(0 0 8px rgba(255, 69, 0, 0.6)); }
+      100% { transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 22px rgba(255, 165, 0, 0.95)); }
+    }
+    /* Stone Walkway Navigation Hotspots perfectly aligned over carved stones */
+    #posterLinks {
+      position: absolute;
+      bottom: 2%;
+      left: 6%;
+      right: 6%;
+      height: 24%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      z-index: 3;
+    }
+    .link-row {
+      display: flex;
+      width: 100%;
+      justify-content: space-around;
+    }
+    .temple-link-btn {
+      background: transparent;
+      border: 2px solid transparent;
+      color: transparent;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      padding: 6px 16px;
+      width: 90%;
+    }
+    .link-row .temple-link-btn {
+      width: 44%;
+    }
+    .temple-link-btn:hover, .temple-link-btn:focus {
+      background: rgba(255, 215, 0, 0.18);
+      border-color: rgba(255, 215, 0, 0.7);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), inset 0 0 10px rgba(255, 215, 0, 0.3);
+      transform: scale(1.04);
+    }
+    .temple-link-btn:active {
+      transform: scale(0.96);
+    }
+    /* Game Over Modal over the poster */
+    #gameOverModal {
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 18, 12, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+      z-index: 5;
+      animation: modalFade 0.3s ease;
+    }
+    .stone-tablet {
+      background: linear-gradient(145deg, #2b382d 0%, #172419 100%);
+      border: 3px solid #d4af37;
+      border-radius: 18px;
+      padding: 24px 20px;
+      text-align: center;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(212, 175, 55, 0.35);
+      max-width: 340px;
+      width: 100%;
+    }
+    .stone-tablet h1 {
+      font-size: clamp(22px, 5.2vw, 30px);
+      color: #ff4444;
+      margin: 0 0 12px 0;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 6px #000;
+    }
+    .stone-tablet p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: #e5f4ec;
+      margin: 0 0 20px 0;
+      text-shadow: 0 1px 3px #000;
+      white-space: pre-line;
+    }
+    .temple-again-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+    /* Popup Info Modals */
+    .info-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 12, 7, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      padding: 16px;
+      backdrop-filter: blur(5px);
+      animation: modalFade 0.25s ease;
+    }
+    @keyframes modalFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .info-modal-card {
+      position: relative;
+      background: linear-gradient(145deg, #1f2d22 0%, #111a13 100%);
+      border: 3px solid #d4af37;
+      border-radius: 18px;
+      padding: 24px 20px;
+      color: #e8f5ec;
+      max-width: 360px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(212, 175, 55, 0.4);
+    }
+    .info-modal-card h2 {
+      margin: 0 0 14px 0;
+      color: #ffd700;
+      font-size: 22px;
+      text-align: center;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 5px #000;
+    }
+    .info-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      color: #ffd700;
+      font-size: 18px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .info-modal-close:hover {
+      background: #ffd700;
+      color: #000;
+    }
+    .info-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .info-list li {
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+    }
+    .info-list li:last-child {
+      border-bottom: none;
+    }
+    .info-list strong {
+      color: #ffd447;
+    }
+    button.main-btn {
+      padding: 15px 36px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffe066 0%, #ffc107 100%);
+      color: #1a1608;
+      font-size: 19px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 6px 20px rgba(255, 193, 7, 0.45);
+      transition: all 0.2s ease;
+    }
+    button.main-btn:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 8px 25px rgba(255, 193, 7, 0.65);
+    }
+    button.main-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+    #hint {
+      position: fixed;
+      z-index: 3;
+      bottom: 14px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: white;
+      text-shadow: 0 2px 4px #000;
+      font-size: 14px;
+      pointer-events: none;
+    }
+    #touch {
+      display: none;
+      position: fixed;
+      z-index: 4;
+      bottom: 38px;
+      left: 0;
+      right: 0;
+      justify-content: space-around;
+      padding: 0 20px;
+    }
+    #touch button {
+      opacity: 0.85;
+      padding: 14px 22px;
+      border-radius: 12px;
+      background: rgba(255, 211, 78, 0.9);
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      color: #111;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    #touch button:active {
+      transform: scale(0.94);
+      opacity: 1;
+    }
+    #turnAlert {
+      display: none;
+      position: fixed;
+      top: 22%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      color: #ffd447;
+      font-weight: 900;
+      font-size: clamp(20px, 5vw, 38px);
+      text-shadow: 0 0 16px rgba(255, 212, 71, 0.9), 0 3px 6px #000;
+      pointer-events: none;
+      letter-spacing: 2px;
+      animation: pulseTurn 0.35s infinite alternate ease-in-out;
+      background: rgba(10, 25, 15, 0.7);
+      padding: 8px 24px;
+      border-radius: 30px;
+      border: 2px solid rgba(255, 212, 71, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    #ropeAlert, #downwardRopeAlert {
+      display: none;
+      position: fixed;
+      top: 23%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      color: #ff9d24;
+      font-weight: 900;
+      font-size: clamp(18px, 4.6vw, 32px);
+      text-shadow: 0 0 16px rgba(255, 157, 36, 0.95), 0 3px 6px #000;
+      pointer-events: none;
+      letter-spacing: 2px;
+      animation: pulseRope 0.35s infinite alternate ease-in-out;
+      background: rgba(28, 18, 10, 0.88);
+      padding: 10px 28px;
+      border-radius: 30px;
+      border: 2px solid #ff9d24;
+      box-shadow: 0 0 20px rgba(255, 157, 36, 0.6);
+      backdrop-filter: blur(4px);
+      white-space: nowrap;
+    }
+    @keyframes pulseTurn {
+      from { transform: translateX(-50%) scale(1); }
+      to { transform: translateX(-50%) scale(1.1); }
+    }
+    @keyframes pulseRope {
+      from { transform: translateX(-50%) scale(1); }
+      to { transform: translateX(-50%) scale(1.08); }
+    }
+    #shieldHud {
+      display: none;
+      position: fixed;
+      top: 195px;
+      left: 14px;
+      z-index: 4;
+      color: #55ffff;
+      background: rgba(4, 28, 38, 0.88);
+      padding: 8px 16px;
+      border-radius: 18px;
+      font-weight: 900;
+      font-size: 15px;
+      border: 2px solid #00ffff;
+      box-shadow: 0 0 16px rgba(0, 255, 255, 0.6);
+      backdrop-filter: blur(4px);
+      letter-spacing: 1px;
+      animation: pulseShield 0.6s infinite alternate ease-in-out;
+    }
+    @keyframes pulseShield {
+      from { transform: scale(1); box-shadow: 0 0 10px rgba(0, 255, 255, 0.45); }
+      to { transform: scale(1.05); box-shadow: 0 0 22px rgba(0, 255, 255, 0.85); }
+    }
+    #rewardBanner {
+      display: none;
+      position: fixed;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 7;
+      color: #ffe838;
+      background: linear-gradient(135deg, rgba(16, 46, 26, 0.96), rgba(4, 20, 10, 0.98));
+      padding: 20px 36px;
+      border-radius: 24px;
+      border: 3px solid #ffd700;
+      box-shadow: 0 0 35px rgba(255, 215, 0, 0.8), 0 8px 24px #000;
+      font-size: clamp(20px, 4.5vw, 34px);
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: 1.5px;
+      text-shadow: 0 3px 6px #000;
+      animation: bannerPop 0.45s ease-out;
+      pointer-events: none;
+    }
+    @keyframes bannerPop {
+      0% { transform: translateX(-50%) scale(0.4); opacity: 0; }
+      75% { transform: translateX(-50%) scale(1.08); opacity: 1; }
+      100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+    @media(max-width: 700px) {
+      #touch { display: flex; }
+      #hint { bottom: 105px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="hud">
+  DISTANCE: <span id="dist">0</span> m<br>
+  TOTAL COINS: <span id="coinCount">0</span><br>
+  <span style="color:#ffd700">YELLOW COINS:</span> <span id="yellowCount">0</span> / 300<br>
+  <span style="color:#38b6ff">BLUE COINS:</span> <span id="blueCount">0</span> / 50<br>
+  <span style="color:#ff3b3b">RED COINS:</span> <span id="redCount">0</span> / 50<br>
+  SPEED: <span id="spd">1.0</span>x
+</div>
+
+<div id="shieldHud">🛡️ SHIELD: <span id="shieldTimer">10.0</span>s</div>
+<div id="rewardBanner"><div id="rewardText">100 COLOURED COINS COMPLETED!</div></div>
+
+<button id="soundToggle" title="Toggle Sound">🔊</button>
+
+<div id="overlay">
+  <!-- Classic Temple Run Frontend Poster -->
+  <div id="templePoster">
+    <img src="temple-menu.jpg" alt="Temple Run" id="posterImg">
+
+    <!-- Interactive PLAY! Hotspot -->
+    <button id="start" class="temple-play-btn" title="Take the idol & Run!" aria-label="Play Game">
+      PLAY!
+    </button>
+
+    <!-- Stone Pathway Navigation Links -->
+    <div id="posterLinks">
+      <button class="temple-link-btn" id="btnObjectives" title="Objectives" aria-label="Objectives">OBJECTIVES</button>
+      <div class="link-row">
+        <button class="temple-link-btn" id="btnStats" title="Game Stats" aria-label="Stats">STATS</button>
+        <button class="temple-link-btn" id="btnStore" title="Store & Powerups" aria-label="Store">STORE</button>
+      </div>
+      <div class="link-row">
+        <button class="temple-link-btn" id="btnOptions" title="Options" aria-label="Options">OPTIONS</button>
+        <button class="temple-link-btn" id="btnControls" title="Controls & More Games" aria-label="More Games & Controls">MORE GAMES</button>
+      </div>
+    </div>
+
+    <!-- Game Over Card over the poster -->
+    <div id="gameOverModal" style="display:none">
+      <div class="stone-tablet">
+        <h1 id="goTitle">GAME OVER</h1>
+        <p id="goDesc">Distance: 0 m · Coins: 0</p>
+        <button id="restartBtn" class="main-btn temple-again-btn">RUN AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Info Modals -->
+  <div id="infoModal" class="info-modal-backdrop" style="display:none">
+    <div class="info-modal-card">
+      <button class="info-modal-close" id="modalCloseBtn">✕</button>
+      <h2 id="modalTitle">TEMPLE RUN</h2>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+</div>
+
+<div id="hint">Swipe left/right to change lanes · Swipe up to jump · Swipe down to slide</div>
+
+<div id="turnAlert"><span id="turnText">◀ ◀ TURN LEFT ◀ ◀</span></div>
+<div id="ropeAlert"><span id="ropeAlertText">🪢 ⚠️ HANGING ROPE AHEAD! ⚠️ 🪢</span></div>
+<div id="downwardRopeAlert"><span id="downwardRopeAlertText">🪢 ⚠️ UPPER BRIDGE &amp; DOWNWARD ROPE AHEAD! ⚠️ 🪢</span></div>
+
+<div id="touch">
+  <button data-a="left">◀</button>
+  <button data-a="jump">JUMP</button>
+  <button data-a="slide">SLIDE</button>
+  <button data-a="right">▶</button>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+// --- Sound System & Audio Files ---
+let soundEnabled = true;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+let gorillaRoar = null;
+let gorillaAttackAudio = null;
+let victoryAudio = null;
+
+try {
+  gorillaRoar = new Audio('sounds/gorilla-roar-523007.mp3');
+  gorillaRoar.volume = 0.9;
+  gorillaRoar.preload = 'auto';
+  window.gorillaRoarSound = gorillaRoar;
+} catch (e) {
+  gorillaRoar = null;
+  window.gorillaRoarSound = null;
+}
+const gorillaAudio = gorillaRoar;
+
+try {
+  gorillaAttackAudio = new Audio('sounds/gorilla-attack.mp3');
+  gorillaAttackAudio.volume = 0.95;
+  gorillaAttackAudio.preload = 'auto';
+  window.gorillaAttackSound = gorillaAttackAudio;
+} catch (e) {
+  gorillaAttackAudio = null;
+  window.gorillaAttackSound = null;
+}
+
+try {
+  victoryAudio = new Audio('sounds/victory.mp3');
+  victoryAudio.volume = 0.85;
+  victoryAudio.preload = 'auto';
+} catch (e) {
+  victoryAudio = null;
+}
+
+function playGorillaRoar() {
+  if (!soundEnabled) return;
+  if (gorillaRoar) {
+    gorillaRoar.pause();
+    gorillaRoar.currentTime = 0;
+    const promise = gorillaRoar.play();
+    if (promise !== undefined) {
+      promise.catch(error => {
+        console.log("Gorilla audio could not play:", error);
+        playGorillaRoarSynth();
+      });
+      return;
+    }
+  }
+  playGorillaRoarSynth();
+}
+const playGorillaRoarVoice = playGorillaRoar;
+
+function playGorillaAttackSound() {
+  if (!soundEnabled) return;
+  if (gorillaAttackAudio) {
+    gorillaAttackAudio.pause();
+    gorillaAttackAudio.currentTime = 0;
+    const promise = gorillaAttackAudio.play();
+    if (promise !== undefined) {
+      promise.catch(err => {
+        console.warn("Attack sound playback blocked/failed, falling back to roar:", err);
+        playGorillaRoar();
+      });
+      return;
+    }
+  }
+  playGorillaRoar();
+}
+
+function playGorillaRoarSynth() {
+  if (!soundEnabled) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+
+    // Multi-oscillator roar: deep fundamental + throat flutter
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(110, now);
+    osc1.frequency.exponentialRampToValueAtTime(38, now + 1.2);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(58, now);
+    osc2.frequency.exponentialRampToValueAtTime(30, now + 1.4);
+
+    gainNode.gain.setValueAtTime(0.001, now);
+    gainNode.gain.linearRampToValueAtTime(0.35, now + 0.12);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 1.6);
+    osc2.stop(now + 1.6);
+  } catch(e) {}
+}
+
+function playVictorySound() {
+  if (!soundEnabled) return;
+  if (victoryAudio) {
+    victoryAudio.pause();
+    victoryAudio.currentTime = 0;
+    const p = victoryAudio.play();
+    if (p !== undefined) {
+      p.catch(() => playVictorySynth());
+      return;
+    }
+  }
+  playVictorySynth();
+}
+
+function playVictorySynth() {
+  if (!soundEnabled) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.16);
+      gain.gain.setValueAtTime(0.24, now + idx * 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.16 + (idx === 3 ? 1.2 : 0.3));
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + idx * 0.16);
+      osc.stop(now + idx * 0.16 + (idx === 3 ? 1.2 : 0.3));
+    });
+  } catch(e) {}
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'coin') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(988, now);
+      osc.frequency.setValueAtTime(1320, now + 0.07);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (type === 'jump') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.18);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'slide') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (type === 'crash') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(35, now + 0.36);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } else if (type === 'roar') {
+      playGorillaRoarVoice();
+    } else if (type === 'gorillaAttack' || type === 'attack') {
+      playGorillaAttackSound();
+    } else if (type === 'turn') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(750, now + 0.18);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } else if (type === 'shieldSmash') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(75, now + 0.26);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } else if (type === 'victory') {
+      playVictorySound();
+    } else if (type === 'ropeSlide') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.linearRampToValueAtTime(170, now + 0.32);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+  } catch(e) {}
+}
+
+document.getElementById('soundToggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+  if (!soundEnabled) {
+    if (gorillaAudio) gorillaAudio.pause();
+    if (gorillaAttackAudio) gorillaAttackAudio.pause();
+    if (victoryAudio) victoryAudio.pause();
+  }
+});
+
+// Scene, camera and renderer
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9bbba3);
+scene.fog = new THREE.Fog(0x9bbba3, 24, 105);
+
+const camera = new THREE.PerspectiveCamera(66, innerWidth / innerHeight, 0.1, 180);
+camera.position.set(0, 5.3, 11);
+camera.lookAt(0, 1, -7);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xe8f4e5, 0x34452b, 2));
+const sun = new THREE.DirectionalLight(0xffedc5, 2);
+sun.position.set(-12, 22, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+scene.add(sun);
+
+function createWaterTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#096e9e');
+  grad.addColorStop(0.5, '#168dc7');
+  grad.addColorStop(1, '#0c5c87');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 256);
+
+  ctx.strokeStyle = 'rgba(220, 248, 255, 0.58)';
+  ctx.lineWidth = 2.4;
+  for (let y = 0; y < 256; y += 16) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= 256; x += 16) {
+      const cy = y + Math.sin(x * 0.08 + y * 0.05) * 5;
+      ctx.lineTo(x, cy);
+    }
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.38)';
+  ctx.lineWidth = 1.5;
+  for (let y = 8; y < 256; y += 24) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= 256; x += 12) {
+      const cy = y + Math.cos(x * 0.12 - y * 0.06) * 3.5;
+      ctx.lineTo(x, cy);
+    }
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(3, 8);
+  return tex;
+}
+
+function createWaterfallTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#65c4ec';
+  ctx.fillRect(0, 0, 128, 256);
+
+  for (let x = 4; x < 128; x += 8) {
+    const wGrad = ctx.createLinearGradient(x, 0, x, 256);
+    wGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    wGrad.addColorStop(0.5, 'rgba(215, 248, 255, 0.95)');
+    wGrad.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
+    ctx.fillStyle = wGrad;
+    ctx.fillRect(x + Math.sin(x) * 1.5, 0, 4.5, 256);
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 4);
+  return tex;
+}
+
+const waterTexture = createWaterTexture();
+const waterfallTexture = createWaterfallTexture();
+
+const mat = (c, r = 0.9, m = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+const M = {
+  earth: mat(0x453b2b),
+  path: mat(0x66533b),
+  stone: mat(0x77745c),
+  moss: mat(0x425c32),
+  bark: mat(0x4c3323),
+  leaf: [mat(0x1b4d2b), mat(0x28643a), mat(0x39743a), mat(0x17452b)],
+  rock: mat(0x59604b),
+  gold: mat(0xffca28, 0.22, 0.7),
+  wood: mat(0x69452b),
+  block: mat(0x8b4930),
+  blue: mat(0x1769a5),
+  skin: mat(0xc88b5e),
+  pants: mat(0x252b35),
+  ape: mat(0x211b1a),
+  apeFace: mat(0x655047),
+  apeChest: mat(0x3d302b),
+  redCoin: new THREE.MeshStandardMaterial({
+    color: 0xff2424,
+    metalness: 0.7,
+    roughness: 0.18,
+    emissive: 0x770505
+  }),
+  blueCoin: new THREE.MeshStandardMaterial({
+    color: 0x1188ff,
+    metalness: 0.7,
+    roughness: 0.18,
+    emissive: 0x052a77
+  }),
+  greenCoin: new THREE.MeshStandardMaterial({
+    color: 0x00e640,
+    metalness: 0.7,
+    roughness: 0.18,
+    emissive: 0x005515
+  }),
+  purpleCoin: new THREE.MeshStandardMaterial({
+    color: 0xcc22ff,
+    metalness: 0.7,
+    roughness: 0.18,
+    emissive: 0x550066
+  }),
+  shield: new THREE.MeshStandardMaterial({
+    color: 0x00ffff,
+    transparent: true,
+    opacity: 0.42,
+    roughness: 0.1,
+    metalness: 0.6,
+    emissive: 0x006688
+  }),
+  water: new THREE.MeshStandardMaterial({
+    map: waterTexture,
+    color: 0x1da5ed,
+    roughness: 0.1,
+    metalness: 0.38,
+    transparent: true,
+    opacity: 0.88,
+    side: THREE.DoubleSide
+  }),
+  waterFoam: new THREE.MeshStandardMaterial({
+    color: 0xe8f8ff,
+    roughness: 0.25,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide
+  }),
+  waterfall: new THREE.MeshStandardMaterial({
+    map: waterfallTexture,
+    color: 0xbdeeff,
+    roughness: 0.12,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.9,
+    side: THREE.DoubleSide
+  }),
+  bridgePlank: mat(0x734827, 0.82, 0.05),
+  bridgeDarkWood: mat(0x4a2e18, 0.88, 0.05),
+  stoneBridge: mat(0x6e6c5a, 0.75, 0.12),
+  stoneRail: mat(0x545244, 0.8, 0.1),
+  rope: mat(0x8a6338, 0.85, 0.1),
+  ropeStrand: mat(0x6b4a25, 0.9, 0.05),
+  cloud: new THREE.MeshStandardMaterial({
+    color: 0xe8f0ee,
+    transparent: true,
+    opacity: 0.65,
+    roughness: 1.0,
+    metalness: 0
+  }),
+  goldTrim: mat(0xd4af37, 0.35, 0.6)
+};
+
+const lanes = [-2.5, 0, 2.5], sections = [], items = [], clock = new THREE.Clock();
+let active = false, distance = 0, coins = 0, speed = 15, lane = 1, jump = 0, jumpV = 0, sliding = false, slideT = 0, spawnT = 0, obstacleT = 0, runT = 0;
+// Realistic River, Bridges & Water System variables
+const riverGeometries = [];
+const activeBridges = [];
+let waterFlowTime = 0;
+let nextBridgeDist = 160;
+let activeBridge = null;
+let bridgeIndex = 0;
+let onBridge = false;
+let bridgeDeckElevation = 0;
+const bridgeTypes = ['wooden', 'stone', 'rope'];
+const waterSplashes = [];
+let canalApproachBridgeSpawned = false;
+let yellowCoinsCollected = 0;
+const YELLOW_COINS_TARGET = 300;
+let blueCoinsCollected = 0;
+const BLUE_COINS_TARGET = 50;
+let redCoinsCollected = 0;
+const RED_COINS_TARGET = 50;
+let yellowChallengeCompleted = false;
+let colouredChallengeCompleted = false;
+let specialTrailIndex = 0;
+let blueCoinsSpawned = 0;
+let redCoinsSpawned = 0;
+let colouredCoinsCollected = 0;
+const COLOURED_COINS_TARGET = 100;
+let shieldRewardClaimed = false;
+let shieldActive = false;
+let shieldTimer = 0;
+let bannerTimer = 0;
+let gorillaChasing = false;
+let gorillaChaseTimer = 0;
+let gorillaChaseDuration = 5;
+let gorillaOriginalZ = -8;
+let gorillaSpeed = 12;
+let gorillaChaseHits = 0;
+let gorillaEating = false;
+let gorillaEatTimer = 0;
+let gorillaState = "hidden";
+let gorillaReturnSpeed = 12;
+let obstacleHitCooldown = 0;
+let obstacleHits = 0;
+let activeTurn = null;
+let nextTurnDist = 80;
+let isTurning = false;
+let turnProgress = 0;
+let turnDir = null;
+let swimming = false;
+let waterStage = false;
+let waterStartDistance = 800;
+let waterEndDistance = 1000;
+let waterGroup = null;
+let waterTime = 0;
+let waterGeometry = null;
+let ropeStage = false;
+let ropeStartDistance = 1200;
+let ropeEndDistance = 1380;
+let ropeGroup = null;
+let hangingOnRope = false;
+let ropeProgress = 0;
+let ropeSwingT = 0;
+let ropeWarned = false;
+let ropeSlideAudioT = 0;
+// Downward Rope Connection Between Two Separate Bridges variables
+let downwardRopeStage = false;
+let downwardRopeStageDist = 450;
+let downwardRopeGroup = null;
+let slidingDownwardRope = false;
+let downwardRopeSlideT = 0;
+let downwardRopeAudioT = 0;
+let downwardRopeWarned = false;
+
+const add = (p, g, m, x, y, z) => {
+  const o = new THREE.Mesh(g, m);
+  o.position.set(x, y, z);
+  o.castShadow = true;
+  o.receiveShadow = true;
+  p.add(o);
+  return o;
+};
+const box = (p, w, h, d, m, x, y, z) => add(p, new THREE.BoxGeometry(w, h, d), m, x, y, z);
+
+// Build repeating 3D forest sections
+const LEN = 36, COUNT = 7;
+function tree(p, x, z, s = 1) {
+  const g = new THREE.Group();
+  add(g, new THREE.CylinderGeometry(0.28 * s, 0.58 * s, 6.2 * s, 9), M.bark, 0, 3.1 * s, 0);
+  for (let i = 0; i < 6; i++) {
+    const c = add(g, new THREE.SphereGeometry((1.25 - i * 0.07) * s, 10, 8), M.leaf[i % 4], Math.sin(i * 2) * 0.42 * s, (5.1 + i * 0.48) * s, Math.cos(i * 1.6) * 0.38 * s);
+    c.scale.y = 0.8;
+  }
+  for (let i = 0; i < 4; i++) {
+    const r = add(g, new THREE.CylinderGeometry(0.04 * s, 0.2 * s, 2.5 * s, 6), M.bark, Math.cos(i * Math.PI / 2) * 0.72 * s, 0.22 * s, Math.sin(i * Math.PI / 2) * 0.72 * s);
+    r.rotation.z = Math.cos(i * Math.PI / 2) * 0.55;
+    r.rotation.x = Math.sin(i * Math.PI / 2) * 0.55;
+  }
+  g.position.set(x, 0, z);
+  p.add(g);
+}
+
+function fern(p, x, z, s = 1) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 7; i++) {
+    const l = add(g, new THREE.ConeGeometry(0.16 * s, 1.5 * s, 5), M.leaf[i % 4], Math.sin(i * 0.9) * 0.35 * s, 0.55 * s, Math.cos(i * 0.9) * 0.35 * s);
+    l.rotation.z = Math.sin(i * 0.9) * 0.85;
+    l.rotation.x = Math.cos(i * 0.9) * 0.75;
+  }
+  g.position.set(x, 0, z);
+  p.add(g);
+}
+
+function pillar(p, x, z) {
+  const g = new THREE.Group();
+  box(g, 0.8, 3.4, 0.8, M.stone, 0, 1.7, 0);
+  box(g, 1.15, 0.25, 1.15, M.moss, 0, 3.5, 0);
+  for (let y = 0.5; y < 3.2; y += 0.8) box(g, 0.9, 0.12, 0.9, M.path, 0, y, 0);
+  g.position.set(x, 0, z);
+  p.add(g);
+}
+
+function buildSection(z) {
+  const g = new THREE.Group();
+  g.position.z = z;
+  box(g, 34, 0.35, LEN, M.earth, 0, -0.42, 0);
+  box(g, 8, 0.22, LEN, M.path, 0, -0.16, 0);
+
+  // Realistic flowing jungle river alongside the path
+  box(g, 11, 0.75, LEN, M.earth, 10.6, -0.78, 0);
+  const riverGeom = new THREE.PlaneGeometry(10.5, LEN, 16, 24);
+  riverGeom.rotateX(-Math.PI / 2);
+  const riverMesh = new THREE.Mesh(riverGeom, M.water);
+  riverMesh.position.set(10.6, -0.32, 0);
+  riverMesh.receiveShadow = true;
+  g.add(riverMesh);
+  riverGeometries.push(riverGeom);
+
+  // Riverbank boulders and foam rings along water edge
+  for (let k = 0; k < 5; k++) {
+    const rz = -14 + k * 7;
+    const rock = add(g, new THREE.DodecahedronGeometry(0.35 + (k % 2) * 0.15), M.rock, 5.5 + (k % 2) * 0.3, -0.15, rz);
+    rock.scale.y = 0.6;
+    const foam = add(g, new THREE.RingGeometry(0.35, 0.65, 10), M.waterFoam, 5.5, -0.28, rz);
+    foam.rotation.x = -Math.PI / 2;
+  }
+
+  // Waterfall cascading down the jungle cliff into the river
+  const wf = add(g, new THREE.PlaneGeometry(3.6, 2.8), M.waterfall, 15.8, 0.6, -6);
+  wf.rotation.y = -Math.PI / 2;
+  const wfFoam = add(g, new THREE.RingGeometry(0.4, 1.2, 12), M.waterFoam, 14.8, -0.29, -6);
+  wfFoam.rotation.x = -Math.PI / 2;
+  for (let i = 0; i < 38; i++) {
+    const s = add(g, new THREE.DodecahedronGeometry(0.13 + Math.random() * 0.18), i % 4 ? M.stone : M.moss, (Math.random() - 0.5) * 7, 0, -17 + Math.random() * 34);
+    s.scale.set(1, 0.3, 1.3);
+  }
+  for (let i = 0; i < 4; i++) {
+    let z0 = -14 + i * 9;
+    tree(g, -9 - (i % 2) * 2, z0, 1 + (i % 2) * 0.16);
+    tree(g, 9 + (i % 2) * 2, z0 - 3, 1.05);
+    if (i % 2 === 0) {
+      pillar(g, -5.1, z0 - 1);
+      pillar(g, 5.1, z0 - 1);
+    }
+  }
+  for (let i = 0; i < 12; i++) {
+    let side = i % 2 ? 1 : -1, z0 = -16 + Math.random() * 32;
+    let r = add(g, new THREE.DodecahedronGeometry(0.45 + Math.random() * 0.5, 1), M.rock, side * (5 + Math.random() * 3), 0.05, z0);
+    r.scale.y = 0.65;
+    fern(g, side * (5 + Math.random() * 2), z0 + 1, 0.8);
+  }
+  for (let i = 0; i < 7; i++) {
+    let side = i % 2 ? 1 : -1;
+    let v = add(g, new THREE.CylinderGeometry(0.025, 0.04, 3 + Math.random() * 2, 5), M.leaf[0], side * (6 + Math.random() * 2), 4.7, -15 + i * 5);
+    v.rotation.z = (Math.random() - 0.5) * 0.3;
+  }
+  scene.add(g);
+  sections.push(g);
+}
+
+for (let i = 0; i < COUNT; i++) buildSection(-i * LEN);
+
+function moveForest(dt) {
+  for (const s of sections) {
+    s.position.z += speed * dt;
+    if (s.position.z > LEN) {
+      s.position.z = Math.min(...sections.map(v => v.position.z)) - LEN;
+    }
+  }
+}
+
+// --- River & Bridge Generation System ---
+
+function createWaterSplash(x, y, z) {
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.12, 0.42, 14),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  g.add(ring);
+
+  const droplets = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new THREE.Mesh(new THREE.DodecahedronGeometry(0.065), M.waterFoam);
+    const angle = (i / 5) * Math.PI * 2 + Math.random() * 0.4;
+    d.userData = {
+      vx: Math.cos(angle) * (0.8 + Math.random() * 0.6),
+      vy: 1.8 + Math.random() * 0.9,
+      vz: Math.sin(angle) * (0.8 + Math.random() * 0.6)
+    };
+    g.add(d);
+    droplets.push(d);
+  }
+
+  g.userData = { life: 0, maxLife: 0.65, ring, droplets };
+  scene.add(g);
+  waterSplashes.push(g);
+  return g;
+}
+
+function updateWaterSplashes(dt) {
+  for (let i = waterSplashes.length - 1; i >= 0; i--) {
+    const s = waterSplashes[i];
+    s.userData.life += dt;
+    const progress = s.userData.life / s.userData.maxLife;
+
+    if (progress >= 1) {
+      scene.remove(s);
+      waterSplashes.splice(i, 1);
+      continue;
+    }
+
+    const scale = 1 + progress * 2.5;
+    s.userData.ring.scale.set(scale, scale, 1);
+    s.userData.ring.material.opacity = (1 - progress) * 0.85;
+
+    for (const d of s.userData.droplets) {
+      d.position.x += d.userData.vx * dt;
+      d.position.y += d.userData.vy * dt;
+      d.position.z += d.userData.vz * dt;
+      d.userData.vy -= 9.8 * dt; // gravity
+    }
+  }
+}
+
+function updateRiverWater(dt) {
+  waterFlowTime += dt;
+
+  // 1. UV Texture Flow (continuously rushing forward & waterfalls cascading)
+  waterTexture.offset.y -= dt * 0.48;
+  waterfallTexture.offset.y -= dt * 2.6;
+
+  // 2. 3D Dynamic Sinusoidal Waves & Ripples on water surface
+  for (let k = 0; k < riverGeometries.length; k++) {
+    const geom = riverGeometries[k];
+    if (!geom || !geom.attributes.position) continue;
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const u = pos.getX(i);
+      const v = pos.getZ(i);
+      const wave = Math.sin(u * 2.0 + waterFlowTime * 5.2) * 0.05 +
+                   Math.cos(v * 1.4 + waterFlowTime * 4.0) * 0.04;
+      pos.setY(i, wave);
+    }
+    pos.needsUpdate = true;
+  }
+
+  // 3. Dynamic splashes & foam update
+  updateWaterSplashes(dt);
+
+  // 4. Occasional natural splashes near river boulders and waterfalls
+  if (Math.random() < 0.22 && waterSplashes.length < 12) {
+    createWaterSplash(10.5 + (Math.random() - 0.5) * 2, -0.3, -25 + Math.random() * 45);
+  }
+}
+
+// 1. Ancient Wooden Plank Bridge
+function createWoodenBridge() {
+  const g = new THREE.Group();
+  const bLen = 32;
+
+  // Deep rocky gorge underneath
+  box(g, 12, 6, bLen, M.rock, -11, -3.2, 0);
+  box(g, 12, 6, bLen, M.rock, 11, -3.2, 0);
+
+  // Rushing river canyon water below
+  const riverWaterGeom = new THREE.PlaneGeometry(10.8, bLen, 16, 24);
+  riverWaterGeom.rotateX(-Math.PI / 2);
+  const waterMesh = new THREE.Mesh(riverWaterGeom, M.water);
+  waterMesh.position.set(0, -3.2, 0);
+  waterMesh.receiveShadow = true;
+  g.add(waterMesh);
+  riverGeometries.push(riverWaterGeom);
+
+  // Cascading waterfalls on both gorge walls
+  for (const side of [-1, 1]) {
+    const wf = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 4.5), M.waterfall);
+    wf.position.set(side * 5.3, -1.2, 0);
+    wf.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+    g.add(wf);
+
+    // White foam mist & splash rings
+    for (let k = 0; k < 6; k++) {
+      const foam = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.9, 12), M.waterFoam);
+      foam.rotation.x = -Math.PI / 2;
+      foam.position.set(side * 4.4 + (k % 2 ? 0.3 : -0.3), -3.15, -12 + k * 4.8);
+      g.add(foam);
+    }
+  }
+
+  // 4 Longitudinal timber stringers beneath planks
+  for (const sx of [-3.4, -1.2, 1.2, 3.4]) {
+    box(g, 0.45, 0.55, bLen, M.bridgeDarkWood, sx, -0.32, 0);
+  }
+
+  // Heavy timber vertical support pilings into riverbed
+  for (const pz of [-11, 0, 11]) {
+    for (const px of [-3.4, 3.4]) {
+      add(g, new THREE.CylinderGeometry(0.35, 0.45, 4.8, 8), M.bridgeDarkWood, px, -2.2, pz);
+    }
+    box(g, 7.2, 0.28, 0.28, M.bridgeDarkWood, 0, -2.0, pz);
+  }
+
+  // Weathered wooden planks across deck
+  const plankGroup = new THREE.Group();
+  for (let i = 0; i < 36; i++) {
+    const pz = -bLen / 2 + 0.5 + i * (bLen / 36);
+    const pWidth = 7.8 + (i % 2 ? 0.15 : -0.15);
+    const pThick = 0.16 + (i % 3 === 0 ? 0.03 : -0.02);
+    const plankMat = i % 3 === 0 ? M.bridgeDarkWood : M.bridgePlank;
+    box(plankGroup, pWidth, pThick, 0.76, plankMat, 0, 0, pz);
+  }
+  g.add(plankGroup);
+
+  // Side Railings: Timber posts and rope handrails
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 9; i++) {
+      const pz = -bLen / 2 + 1.5 + i * 3.6;
+      add(g, new THREE.CylinderGeometry(0.12, 0.15, 1.6, 6), M.bridgeDarkWood, side * 3.9, 0.8, pz);
+    }
+    box(g, 0.22, 0.22, bLen, M.bridgeDarkWood, side * 3.9, 1.45, 0);
+    box(g, 0.12, 0.12, bLen, M.rope, side * 3.9, 0.75, 0);
+  }
+
+  g.userData = {
+    type: 'wooden',
+    length: bLen,
+    deckY: 0.1,
+    waterMesh: waterMesh,
+    riverWaterGeom: riverWaterGeom,
+    plankGroup: plankGroup
+  };
+
+  return g;
+}
+
+// 2. Ancient Stone Temple Bridge
+function createStoneBridge() {
+  const g = new THREE.Group();
+  const bLen = 32;
+
+  // Deep canyon below
+  box(g, 12, 6, bLen, M.rock, -11, -3.2, 0);
+  box(g, 12, 6, bLen, M.rock, 11, -3.2, 0);
+
+  // Canyon river
+  const riverWaterGeom = new THREE.PlaneGeometry(10.8, bLen, 16, 24);
+  riverWaterGeom.rotateX(-Math.PI / 2);
+  const waterMesh = new THREE.Mesh(riverWaterGeom, M.water);
+  waterMesh.position.set(0, -3.2, 0);
+  waterMesh.receiveShadow = true;
+  g.add(waterMesh);
+  riverGeometries.push(riverWaterGeom);
+
+  // Twin waterfalls on cliff edges
+  for (const side of [-1, 1]) {
+    const wf = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 4.5), M.waterfall);
+    wf.position.set(side * 5.3, -1.2, 0);
+    wf.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+    g.add(wf);
+
+    for (let k = 0; k < 6; k++) {
+      const foam = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.9, 12), M.waterFoam);
+      foam.rotation.x = -Math.PI / 2;
+      foam.position.set(side * 4.4 + (k % 2 ? 0.3 : -0.3), -3.15, -12 + k * 4.8);
+      g.add(foam);
+    }
+  }
+
+  // Stone Arched Piers supporting the bridge
+  for (const pz of [-8, 8]) {
+    box(g, 8.4, 3.4, 3.2, M.stoneBridge, 0, -1.7, pz);
+    add(g, new THREE.CylinderGeometry(2.4, 2.4, 3.6, 12), M.rock, 0, -2.4, pz).rotation.z = Math.PI / 2;
+  }
+
+  // Cobblestone Roadway Deck
+  box(g, 8.2, 0.45, bLen, M.stoneBridge, 0, -0.15, 0);
+  box(g, 7.8, 0.15, bLen, M.path, 0, 0.05, 0);
+
+  // Decorative stone balustrades on both sides
+  for (const side of [-1, 1]) {
+    box(g, 0.55, 0.35, bLen, M.stoneBridge, side * 3.9, 0.25, 0);
+    box(g, 0.65, 0.25, bLen, M.stoneRail, side * 3.9, 1.25, 0);
+    for (let i = 0; i < 16; i++) {
+      const pz = -bLen / 2 + 1.0 + i * 2.0;
+      add(g, new THREE.CylinderGeometry(0.14, 0.14, 0.75, 6), M.stoneBridge, side * 3.9, 0.75, pz);
+    }
+    for (let i = 0; i < 8; i++) {
+      const pz = -bLen / 2 + 2.0 + i * 4.0;
+      const ivy = add(g, new THREE.CylinderGeometry(0.04, 0.06, 2.4, 5), M.leaf[0], side * 4.2, -0.8, pz);
+      ivy.rotation.z = side * 0.15;
+    }
+  }
+
+  // 4 Grand Entrance Pillars with burning fire torches
+  const torches = [];
+  for (const side of [-1, 1]) {
+    for (const pz of [-bLen / 2 + 1.2, bLen / 2 - 1.2]) {
+      pillar(g, side * 4.3, pz);
+      add(g, new THREE.CylinderGeometry(0.35, 0.2, 0.3, 8), M.stoneBridge, side * 4.3, 3.7, pz);
+      const flame = add(g, new THREE.ConeGeometry(0.22, 0.5, 6), mat(0xff6600), side * 4.3, 4.05, pz);
+      torches.push(flame);
+    }
+  }
+
+  g.userData = {
+    type: 'stone',
+    length: bLen,
+    deckY: 0.1,
+    waterMesh: waterMesh,
+    riverWaterGeom: riverWaterGeom,
+    torches: torches
+  };
+
+  return g;
+}
+
+// 3. Suspended Hanging Rope Bridge
+function createRopeBridge() {
+  const g = new THREE.Group();
+  const bLen = 34;
+
+  // Deep canyon below
+  box(g, 12, 6, bLen, M.rock, -11, -3.2, 0);
+  box(g, 12, 6, bLen, M.rock, 11, -3.2, 0);
+
+  // Canyon river
+  const riverWaterGeom = new THREE.PlaneGeometry(10.8, bLen, 16, 24);
+  riverWaterGeom.rotateX(-Math.PI / 2);
+  const waterMesh = new THREE.Mesh(riverWaterGeom, M.water);
+  waterMesh.position.set(0, -3.2, 0);
+  waterMesh.receiveShadow = true;
+  g.add(waterMesh);
+  riverGeometries.push(riverWaterGeom);
+
+  // Waterfalls
+  for (const side of [-1, 1]) {
+    const wf = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 4.5), M.waterfall);
+    wf.position.set(side * 5.3, -1.2, 0);
+    wf.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+    g.add(wf);
+  }
+
+  // A-Frame Portal Towers on both bridge approaches
+  for (const pz of [-bLen / 2, bLen / 2]) {
+    for (const side of [-1, 1]) {
+      const post1 = add(g, new THREE.CylinderGeometry(0.24, 0.28, 4.8, 8), M.bridgeDarkWood, side * 4.2, 2.2, pz - 0.6);
+      post1.rotation.x = 0.12;
+      const post2 = add(g, new THREE.CylinderGeometry(0.24, 0.28, 4.8, 8), M.bridgeDarkWood, side * 4.2, 2.2, pz + 0.6);
+      post2.rotation.x = -0.12;
+      box(g, 0.5, 0.5, 1.6, M.bridgeDarkWood, side * 4.2, 4.4, pz);
+    }
+    box(g, 8.8, 0.45, 0.45, M.bridgeDarkWood, 0, 4.3, pz);
+  }
+
+  // Drooping Catenary Main Suspension Cables on left and right
+  for (const side of [-1, 1]) {
+    const curvePoints = [];
+    const cableSegs = 24;
+    for (let i = 0; i <= cableSegs; i++) {
+      const t = i / cableSegs;
+      const cz = -bLen / 2 + t * bLen;
+      const cy = 4.3 - 2.8 * 4 * t * (1 - t);
+      curvePoints.push(new THREE.Vector3(side * 4.1, cy, cz));
+    }
+    const cableCurve = new THREE.CatmullRomCurve3(curvePoints);
+    const cableGeom = new THREE.TubeGeometry(cableCurve, 32, 0.1, 6, false);
+    g.add(new THREE.Mesh(cableGeom, M.rope));
+
+    for (let i = 1; i < cableSegs; i += 2) {
+      const pt = cableCurve.getPoint(i / cableSegs);
+      const dropH = pt.y - 0.1;
+      if (dropH > 0.2) {
+        add(g, new THREE.CylinderGeometry(0.04, 0.04, dropH, 4), M.rope, side * 4.1, 0.1 + dropH / 2, pt.z);
+      }
+    }
+  }
+
+  // Suspended Wooden Deck Planks
+  const deckGroup = new THREE.Group();
+  for (let i = 0; i < 34; i++) {
+    const pz = -bLen / 2 + 0.5 + i * (bLen / 34);
+    const t = i / 34;
+    const dy = -0.25 * 4 * t * (1 - t);
+    box(deckGroup, 7.8, 0.15, 0.78, i % 2 ? M.bridgePlank : M.bridgeDarkWood, 0, dy, pz);
+  }
+  g.add(deckGroup);
+
+  g.userData = {
+    type: 'rope',
+    length: bLen,
+    deckY: 0.1,
+    waterMesh: waterMesh,
+    riverWaterGeom: riverWaterGeom,
+    deckGroup: deckGroup
+  };
+
+  return g;
+}
+
+function spawnBridge(type, spawnZ = -92, force = false) {
+  if (!force && (activeBridge || activeTurn || waterStage || ropeStage)) return;
+
+  let bridgeMesh;
+  if (type === 'wooden') bridgeMesh = createWoodenBridge();
+  else if (type === 'stone') bridgeMesh = createStoneBridge();
+  else bridgeMesh = createRopeBridge();
+
+  bridgeMesh.position.set(0, 0, spawnZ);
+  scene.add(bridgeMesh);
+  activeBridges.push(bridgeMesh);
+
+  // Spawn coins across bridge deck
+  const li = Math.floor(Math.random() * 3);
+  for (let i = 0; i < 6; i++) {
+    const isColoured = distance >= 300;
+    let coinColor = 'yellow', coinMat = M.gold;
+    if (isColoured) {
+      coinColor = (i % 2 === 0 ? 'blue' : 'red');
+      coinMat = coinColor === 'blue' ? M.blueCoin : M.redCoin;
+    }
+    const c = new THREE.Group();
+    c.add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 10, 20), coinMat));
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), coinMat);
+    core.rotation.x = Math.PI / 2;
+    c.add(core);
+    if (isColoured) {
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.46, 16), new THREE.MeshBasicMaterial({
+        color: coinColor === 'blue' ? 0x38b6ff : 0xff3838,
+        transparent: true,
+        opacity: 0.42,
+        side: THREE.DoubleSide
+      }));
+      c.add(halo);
+    }
+    c.position.set(lanes[li], 1.25, spawnZ - 12 + i * 4.2);
+    c.rotation.y = Math.PI / 2;
+    c.userData = { kind: "coin", color: coinColor, baseY: 1.25, animOffset: i * 0.5 };
+    scene.add(c);
+    items.push(c);
+  }
+
+  // 50% chance of an obstacle hurdle on the bridge (when not forced transition)
+  if (!force && Math.random() < 0.52) {
+    const obsLi = (li + 1) % 3;
+    const obs = add(scene, new THREE.CylinderGeometry(0.38, 0.38, 2.2, 10), M.wood, lanes[obsLi], 0.62, spawnZ);
+    obs.rotation.z = Math.PI / 2;
+    obs.userData = { kind: 'obstacle', type: 'log' };
+    items.push(obs);
+  }
+}
+
+function updateBridges(dt) {
+  for (let i = activeBridges.length - 1; i >= 0; i--) {
+    const b = activeBridges[i];
+    b.position.z += speed * dt;
+
+    const bLen = b.userData.length || 32;
+    const halfLen = bLen / 2;
+    const relZ = b.position.z - player.position.z;
+
+    // Check if player is currently on bridge deck
+    if (Math.abs(relZ) <= halfLen) {
+      onBridge = true;
+      activeBridge = b;
+      bridgeDeckElevation = b.userData.deckY || 0.1;
+
+      // Dynamic resonance
+      if (b.userData.type === 'wooden') {
+        const bounce = Math.sin(runT * 15) * 0.04;
+        player.position.y = bridgeDeckElevation + bounce + jump;
+        if (b.userData.plankGroup) {
+          b.userData.plankGroup.position.y = Math.sin(runT * 15) * 0.025;
+        }
+      } else if (b.userData.type === 'rope') {
+        const sway = Math.sin(runT * 7) * 0.05;
+        player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, sway * 0.6, dt * 8);
+        player.position.y = bridgeDeckElevation + Math.abs(sway) * 0.4 + jump;
+        if (b.userData.deckGroup) {
+          b.userData.deckGroup.rotation.z = Math.sin(runT * 7) * 0.02;
+        }
+      } else {
+        // Stone bridge
+        player.position.y = bridgeDeckElevation + jump;
+        player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, 0, dt * 10);
+      }
+    } else if (activeBridge === b && relZ > halfLen) {
+      // Stepped off the bridge back onto normal trail
+      onBridge = false;
+      activeBridge = null;
+      player.rotation.z = 0;
+    }
+
+    // Flicker torches on stone bridges
+    if (b.userData.torches) {
+      for (const f of b.userData.torches) {
+        f.scale.y = 1 + Math.sin(waterFlowTime * 22 + f.position.x) * 0.2;
+        f.scale.x = 1 + Math.cos(waterFlowTime * 19 + f.position.z) * 0.15;
+      }
+    }
+
+    // Cleanup passed bridge & dispose river water geometry
+    if (b.position.z > 70) {
+      if (b.userData.riverWaterGeom) {
+        const idx = riverGeometries.indexOf(b.userData.riverWaterGeom);
+        if (idx !== -1) riverGeometries.splice(idx, 1);
+        b.userData.riverWaterGeom.dispose();
+      }
+      scene.remove(b);
+      activeBridges.splice(i, 1);
+    }
+  }
+}
+
+// Player model
+const player = new THREE.Group();
+add(player, new THREE.BoxGeometry(0.68, 0.9, 0.4), M.blue, 0, 1.28, 0);
+add(player, new THREE.SphereGeometry(0.25, 14, 12), M.skin, 0, 1.98, 0);
+const legs = [], arms = [];
+for (const side of [-1, 1]) {
+  const l = new THREE.Group();
+  l.position.set(side * 0.19, 0.78, 0);
+  player.add(l);
+  add(l, new THREE.BoxGeometry(0.22, 0.65, 0.25), M.pants, 0, -0.32, 0);
+  legs.push(l);
+  const a = new THREE.Group();
+  a.position.set(side * 0.42, 1.55, 0);
+  player.add(a);
+  add(a, new THREE.BoxGeometry(0.18, 0.62, 0.2), M.skin, 0, -0.28, 0);
+  arms.push(a);
+}
+player.position.set(0, 0, 3);
+
+// Invincible 3D spherical protective shield
+const shieldMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(1.35, 24, 20),
+  M.shield
+);
+shieldMesh.position.set(0, 1.25, 0);
+shieldMesh.visible = false;
+player.add(shieldMesh);
+
+scene.add(player);
+
+// Gorilla chaser built from 3D body parts
+const gorilla = new THREE.Group();
+add(gorilla, new THREE.SphereGeometry(0.72, 16, 12), M.ape, 0, 1.45, 0);
+add(gorilla, new THREE.SphereGeometry(0.55, 14, 10), M.apeChest, 0, 1.4, -0.38);
+add(gorilla, new THREE.SphereGeometry(0.43, 14, 12), M.ape, 0, 2.25, -0.12);
+add(gorilla, new THREE.SphereGeometry(0.27, 12, 8), M.apeFace, 0, 2.12, -0.48);
+for (const x of [-0.14, 0.14]) add(gorilla, new THREE.SphereGeometry(0.045, 8, 8), M.gold, x, 2.28, -0.69);
+const gArms = [], gLegs = [];
+for (const side of [-1, 1]) {
+  const a = new THREE.Group();
+  a.position.set(side * 0.68, 1.85, 0);
+  gorilla.add(a);
+  add(a, new THREE.CapsuleGeometry(0.2, 0.78, 4, 8), M.ape, 0, -0.48, 0);
+  add(a, new THREE.SphereGeometry(0.22, 10, 8), M.apeFace, 0, -0.95, -0.08);
+  gArms.push({ a, side });
+  const l = new THREE.Group();
+  l.position.set(side * 0.32, 0.85, 0.04);
+  gorilla.add(l);
+  add(l, new THREE.CapsuleGeometry(0.2, 0.55, 4, 8), M.ape, 0, -0.3, 0);
+  gLegs.push({ l, side });
+}
+gorilla.position.set(0, 0, 10);
+gorilla.scale.setScalar(1.08);
+scene.add(gorilla);
+
+// Obstacles and coin trails
+function obstacle() {
+  const li = Math.floor(Math.random() * 3);
+  const log = Math.random() < 0.48;
+  let o;
+  if (log) {
+    o = add(scene, new THREE.CylinderGeometry(0.38, 0.38, 2.2, 10), M.wood, lanes[li], 0.62, -82);
+    o.rotation.z = Math.PI / 2;
+  } else {
+    o = add(scene, new THREE.BoxGeometry(1.25, 1.35, 1), M.block, lanes[li], 0.68, -82);
+  }
+  o.userData = { kind: 'obstacle', type: log ? 'log' : 'block' };
+  items.push(o);
+}
+
+// --- Particle Sparkle System for Coins ---
+const coinParticles = [];
+const particleGeom = new THREE.SphereGeometry(0.08, 6, 6);
+
+function spawnCoinParticles(pos, color) {
+  let hexColor = 0xffd700;
+  if (color === 'blue') hexColor = 0x38b6ff;
+  else if (color === 'red') hexColor = 0xff3b3b;
+
+  const partMat = new THREE.MeshBasicMaterial({
+    color: hexColor,
+    transparent: true,
+    opacity: 0.95
+  });
+
+  for (let k = 0; k < 10; k++) {
+    const p = new THREE.Mesh(particleGeom, partMat);
+    p.position.copy(pos);
+    const pSpeed = 2.2 + Math.random() * 3.5;
+    const angle = Math.random() * Math.PI * 2;
+    const elevation = (Math.random() - 0.2) * Math.PI;
+    const vel = new THREE.Vector3(
+      Math.cos(angle) * Math.cos(elevation) * pSpeed,
+      Math.sin(elevation) * pSpeed + 1.8,
+      Math.sin(angle) * Math.cos(elevation) * pSpeed
+    );
+    scene.add(p);
+    coinParticles.push({
+      mesh: p,
+      vel: vel,
+      life: 0.42,
+      maxLife: 0.42
+    });
+  }
+}
+
+function updateCoinParticles(dt) {
+  for (let i = coinParticles.length - 1; i >= 0; i--) {
+    const p = coinParticles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      coinParticles.splice(i, 1);
+    } else {
+      p.mesh.position.addScaledVector(p.vel, dt);
+      p.vel.y -= 9.8 * dt;
+      const s = Math.max(0.05, p.life / p.maxLife);
+      p.mesh.scale.set(s, s, s);
+      p.mesh.material.opacity = s;
+    }
+  }
+}
+
+function coinTrail() {
+  // Distance 0m - 300m: Normal yellow coins
+  // Distance >= 300m: Special Coloured Section (50 Blue + 50 Red coins)
+  const isSpecialSection = distance >= 300 && (!colouredChallengeCompleted || blueCoinsCollected < 50 || redCoinsCollected < 50);
+
+  // Distribute across left, middle, and right lanes
+  let li;
+  if (isSpecialSection) {
+    li = specialTrailIndex % 3;
+    specialTrailIndex++;
+  } else {
+    li = Math.floor(Math.random() * 3);
+  }
+
+  const numCoins = 5;
+  for (let i = 0; i < numCoins; i++) {
+    let coinColor = 'yellow';
+    let coinMat = M.gold;
+    let haloColor = null;
+
+    if (isSpecialSection) {
+      // Pick blue or red to ensure 50 blue and 50 red coins
+      if (blueCoinsSpawned < 50 && (i % 2 === 0 || redCoinsSpawned >= 50)) {
+        coinColor = 'blue';
+        coinMat = M.blueCoin;
+        haloColor = 0x38b6ff;
+        blueCoinsSpawned++;
+      } else if (redCoinsSpawned < 50) {
+        coinColor = 'red';
+        coinMat = M.redCoin;
+        haloColor = 0xff3b3b;
+        redCoinsSpawned++;
+      } else {
+        // Extra fallback spawns until player collects 50 blue and 50 red
+        if (blueCoinsCollected < 50 && (i % 2 === 0 || redCoinsCollected >= 50)) {
+          coinColor = 'blue';
+          coinMat = M.blueCoin;
+          haloColor = 0x38b6ff;
+        } else {
+          coinColor = 'red';
+          coinMat = M.redCoin;
+          haloColor = 0xff3b3b;
+        }
+      }
+    } else {
+      // Yellow coin section
+      coinColor = 'yellow';
+      coinMat = M.gold;
+    }
+
+    // Build floating 3D Coin Medallion
+    const c = new THREE.Group();
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 10, 20), coinMat);
+    c.add(rim);
+
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), coinMat);
+    core.rotation.x = Math.PI / 2;
+    c.add(core);
+
+    // Glowing halo aura for special coloured coins
+    if (haloColor !== null) {
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: haloColor,
+        transparent: true,
+        opacity: 0.42,
+        side: THREE.DoubleSide
+      });
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.46, 16), haloMat);
+      c.add(halo);
+    }
+
+    const baseY = 1.25;
+    c.position.set(lanes[li], baseY, -55 - i * 1.85);
+    c.rotation.y = Math.PI / 2;
+
+    c.userData = {
+      kind: "coin",
+      color: coinColor,
+      baseY: baseY,
+      animOffset: i * 0.5
+    };
+
+    scene.add(c);
+    items.push(c);
+  }
+}
+
+function clearItems() {
+  for (const o of items) scene.remove(o);
+  items.length = 0;
+  for (const p of coinParticles) scene.remove(p.mesh);
+  coinParticles.length = 0;
+}
+
+// Build Left/Right Turn Sections
+function createTurnSection(dir) {
+  const g = new THREE.Group();
+
+  // Intersection base (14 x 14)
+  box(g, 14, 0.22, 14, M.path, 0, -0.16, 0);
+
+  // Dead-end ancient temple wall with pillars & torches blocking straight route
+  const deadEnd = new THREE.Group();
+  deadEnd.position.set(0, 0, -6.8);
+  box(deadEnd, 12, 6, 2, M.stone, 0, 3, 0);
+  box(deadEnd, 11, 0.4, 2.2, M.moss, 0, 6.2, 0);
+  box(deadEnd, 5, 4.2, 0.3, mat(0x1a261c), 0, 2.1, 0.9);
+
+  for (const px of [-4.8, 4.8]) {
+    pillar(deadEnd, px, 0.2);
+    // Torch bowl & flame
+    add(deadEnd, new THREE.CylinderGeometry(0.3, 0.18, 0.25, 8), M.stone, px, 3.7, 0.2);
+    add(deadEnd, new THREE.ConeGeometry(0.18, 0.45, 6), mat(0xff6600), px, 4.0, 0.2);
+  }
+  g.add(deadEnd);
+
+  // Overhead wooden lintel gate across track with indicator sign
+  const gate = new THREE.Group();
+  gate.position.set(0, 0, 3.5);
+  box(gate, 0.35, 6.5, 0.35, M.bark, -4.5, 3.25, 0);
+  box(gate, 0.35, 6.5, 0.35, M.bark, 4.5, 3.25, 0);
+  box(gate, 9.6, 0.4, 0.4, M.wood, 0, 6.2, 0);
+  // Hanging wooden board
+  box(gate, 6.5, 1.4, 0.2, mat(0x5c3c1e), 0, 5.1, 0);
+  g.add(gate);
+
+  // Branching road extending in turn direction
+  const branchX = dir === 'left' ? -20 : 20;
+  box(g, 26, 0.22, 8, M.path, branchX, -0.16, 0);
+
+  // Trees and barriers framing the corner
+  if (dir === 'left') {
+    tree(g, 6.5, 0, 1.2);
+    tree(g, 7.5, -4, 1.1);
+    box(g, 1.2, 2.0, 14, M.rock, 5.8, 0.9, 0);
+    for (let bx = -10; bx >= -26; bx -= 8) {
+      tree(g, bx, -6.5, 1.05);
+      tree(g, bx, 6.5, 1.1);
+    }
+  } else {
+    tree(g, -6.5, 0, 1.2);
+    tree(g, -7.5, -4, 1.1);
+    box(g, 1.2, 2.0, 14, M.rock, -5.8, 0.9, 0);
+    for (let bx = 10; bx <= 26; bx += 8) {
+      tree(g, bx, -6.5, 1.05);
+      tree(g, bx, 6.5, 1.1);
+    }
+  }
+
+  return g;
+}
+
+function spawnTurn(dir) {
+  if (activeTurn) return;
+  const mesh = createTurnSection(dir);
+  mesh.position.set(0, 0, -85);
+  scene.add(mesh);
+  activeTurn = { dir, mesh, turned: false };
+}
+
+function executeTurn(dir) {
+  if (!activeTurn || activeTurn.turned) return;
+  activeTurn.turned = true;
+  isTurning = true;
+  turnProgress = 0;
+  turnDir = dir;
+  $('turnAlert').style.display = 'none';
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+  playSound('turn');
+}
+
+const $ = id => document.getElementById(id);
+
+function hud() {
+  if ($('dist')) $('dist').textContent = Math.floor(distance);
+  if ($('coinCount')) $('coinCount').textContent = coins;
+  if ($('yellowCount')) $('yellowCount').textContent = Math.min(YELLOW_COINS_TARGET, yellowCoinsCollected);
+  if ($('blueCount')) $('blueCount').textContent = Math.min(BLUE_COINS_TARGET, blueCoinsCollected);
+  if ($('redCount')) $('redCount').textContent = Math.min(RED_COINS_TARGET, redCoinsCollected);
+  if ($('spd')) $('spd').textContent = (speed / 15).toFixed(1);
+}
+
+function activateShield(duration = 10.0) {
+  shieldActive = true;
+  shieldTimer = duration;
+  if ($('shieldHud')) {
+    $('shieldHud').style.display = 'block';
+    $('shieldTimer').textContent = shieldTimer.toFixed(1);
+  }
+  if (shieldMesh) {
+    shieldMesh.visible = true;
+  }
+}
+
+function showRewardBanner(text, subtext = "") {
+  const banner = $('rewardBanner');
+  if (!banner) return;
+  banner.innerHTML = `<div style="color:#ffd700; text-shadow:0 0 20px #ffd700; font-size:clamp(22px, 5vw, 36px); margin-bottom:8px">🎉 ${text} 🎉</div>` +
+    (subtext ? `<div style="font-size:clamp(16px, 3.5vw, 22px); color:#55ffff; font-weight:700; letter-spacing:1px">${subtext}</div>` : "");
+  banner.style.display = 'block';
+  bannerTimer = 4.5;
+}
+
+function checkColouredCompletion() {
+  if (
+    blueCoinsCollected >= BLUE_COINS_TARGET &&
+    redCoinsCollected >= RED_COINS_TARGET &&
+    !colouredChallengeCompleted
+  ) {
+    colouredChallengeCompleted = true;
+    activateShield(10.0);
+    showRewardBanner("100 COLOURED COINS COMPLETED!", "🛡️ 10S INVINCIBLE SHIELD ACTIVATED!");
+    playVictorySound();
+  }
+}
+
+function collectCoin(color, worldPos = null) {
+  if (worldPos) {
+    spawnCoinParticles(worldPos, color);
+  }
+
+  if (color === 'yellow' || color === 'gold') {
+    yellowCoinsCollected++;
+    coins += 1;
+    if (yellowCoinsCollected >= YELLOW_COINS_TARGET && !yellowChallengeCompleted) {
+      yellowChallengeCompleted = true;
+      showRewardBanner("YELLOW COIN CHALLENGE COMPLETED!", "💰 300 YELLOW COINS COLLECTED!");
+      playVictorySound();
+    }
+  } else if (color === 'blue') {
+    blueCoinsCollected++;
+    coins += 3;
+    checkColouredCompletion();
+  } else if (color === 'red') {
+    redCoinsCollected++;
+    coins += 2;
+    checkColouredCompletion();
+  } else {
+    coins += 1;
+  }
+
+  playSound('coin');
+  hud();
+}
+
+function startGorillaChase(duration = 5) {
+  if (gorillaChasing) {
+    // A second obstacle hit during the chase means the gorilla catches the hero.
+    gorillaChaseHits++;
+    if (gorillaChaseHits >= 1) {
+      gorillaEating = true;
+      gorillaEatTimer = 3.0; // 3-second capture animation
+      gorillaChasing = false;
+      gorillaState = "eating";
+      gorilla.visible = true;
+      playGorillaAttackSound();
+    }
+    return;
+  }
+
+  gorillaChasing = true;
+  gorillaChaseTimer = duration;
+  gorillaChaseDuration = duration;
+  gorillaChaseHits = 0;
+
+  gorillaState = "chasing";
+  gorilla.visible = true;
+  gorilla.position.z = 10;
+
+  playGorillaRoar();
+
+  console.log("Gorilla chasing for " + duration + " seconds");
+}
+const triggerGorillaChase = startGorillaChase;
+
+function updateGorillaChase(dt) {
+  if (!gorillaChasing) return;
+
+  gorillaChaseTimer -= dt;
+
+  // Follow hero lane smoothly
+  gorilla.position.x = THREE.MathUtils.lerp(
+    gorilla.position.x,
+    player.position.x,
+    Math.min(dt * 4, 1)
+  );
+
+  // Approach hero and stay close behind
+  gorilla.position.z = THREE.MathUtils.lerp(
+    gorilla.position.z,
+    player.position.z + 3.0,
+    Math.min(dt * gorillaSpeed * 0.45, 1)
+  );
+
+  gorilla.rotation.y = Math.sin(performance.now() * 0.015) * 0.12;
+
+  // Limbs animation
+  if (swimming) {
+    gorilla.position.y = 0.2 + Math.sin(waterTime * 5) * 0.05;
+    gArms.forEach(({ a, side }) => {
+      a.rotation.x = Math.sin(waterTime * 7 + side) * 0.8;
+    });
+    gLegs.forEach(({ l, side }) => {
+      l.rotation.x = Math.sin(waterTime * 9 + side * Math.PI) * 0.5;
+    });
+  } else {
+    gorilla.position.y = Math.abs(Math.sin(runT * 10)) * 0.08;
+    gArms.forEach(({ a, side }) => {
+      a.rotation.x = Math.sin(runT * 10 + side) * 0.8;
+    });
+    gLegs.forEach(({ l, side }) => {
+      l.rotation.x = Math.sin(runT * 10 + side * Math.PI) * 0.6;
+    });
+  }
+
+  // Chase duration completed: gorilla leaves into forest
+  if (gorillaChaseTimer <= 0) {
+    gorillaChasing = false;
+    gorillaState = "leaving";
+    gorillaChaseHits = 0;
+    gorilla.rotation.y = 0;
+  }
+}
+
+function updateGorillaEating(dt) {
+  if (!gorillaEating) return;
+
+  gorillaEatTimer -= dt;
+
+  // Decelerate game speed during capture animation
+  speed = Math.max(0, speed - dt * 24);
+
+  // Gorilla lunges directly over the hero
+  gorilla.position.x = THREE.MathUtils.lerp(
+    gorilla.position.x,
+    player.position.x,
+    Math.min(dt * 4, 1)
+  );
+
+  gorilla.position.z = THREE.MathUtils.lerp(
+    gorilla.position.z,
+    player.position.z + 0.8,
+    Math.min(dt * 4, 1)
+  );
+
+  gorilla.position.y = THREE.MathUtils.lerp(
+    gorilla.position.y,
+    0.35,
+    Math.min(dt * 4, 1)
+  );
+
+  // Hero gets knocked flat
+  player.rotation.x = THREE.MathUtils.lerp(
+    player.rotation.x,
+    -1.2,
+    Math.min(dt * 3, 1)
+  );
+  player.position.y = 0.15;
+
+  // Gorilla mauling/eating motion
+  gArms.forEach(({ a, side }) => {
+    a.rotation.x = -1.1 + Math.sin(gorillaEatTimer * 12 + side) * 0.35;
+  });
+  gLegs.forEach(({ l }) => {
+    l.rotation.x = 0.35;
+  });
+
+  // End of 3s capture animation: hero disappears and game over triggers
+  if (gorillaEatTimer <= 0) {
+    gorillaEating = false;
+    player.visible = false;
+    gameOver("THE GORILLA ATE YOU!");
+  }
+}
+
+// 3D Water Canal Swimming Stage (720m - 1000m)
+function createSwimmingStage() {
+  if (waterGroup) return;
+  waterGroup = new THREE.Group();
+
+  // Water surface with subdivisions for dynamic wave animation and realistic material
+  waterGeometry = new THREE.PlaneGeometry(8, 240, 28, 100);
+  waterGeometry.rotateX(-Math.PI / 2);
+  const water = new THREE.Mesh(waterGeometry, M.water);
+  water.position.y = 0.15;
+  water.receiveShadow = true;
+  waterGroup.add(water);
+  riverGeometries.push(waterGeometry);
+
+  // Canal walls on both sides
+  for (const side of [-1, 1]) {
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 1.4, 240),
+      new THREE.MeshStandardMaterial({ color: 0x666b55, roughness: 0.85 })
+    );
+    wall.position.set(side * 4.3, 0.5, 0);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    waterGroup.add(wall);
+
+    // Moss on canal walls
+    const moss = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 0.2, 240),
+      new THREE.MeshStandardMaterial({ color: 0x315c31, roughness: 0.9 })
+    );
+    moss.position.set(side * 4.3, 1.3, 0);
+    waterGroup.add(moss);
+
+    // Decorative rocks along canal banks
+    for (let i = 0; i < 20; i++) {
+      const rock = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.35 + Math.random() * 0.35),
+        M.rock
+      );
+      rock.position.set(
+        side * (4.5 + Math.random() * 0.8),
+        0.2,
+        -115 + i * 12
+      );
+      waterGroup.add(rock);
+    }
+  }
+
+  // Water ripples
+  for (let i = 0; i < 22; i++) {
+    const ripple = new THREE.Mesh(
+      new THREE.TorusGeometry(0.35, 0.025, 6, 20),
+      new THREE.MeshBasicMaterial({
+        color: 0xb5efff,
+        transparent: true,
+        opacity: 0.45
+      })
+    );
+    ripple.rotation.x = Math.PI / 2;
+    ripple.position.set(
+      (Math.random() - 0.5) * 6,
+      0.18,
+      -115 + i * 11
+    );
+    waterGroup.add(ripple);
+  }
+
+  waterGroup.position.z = -100;
+  scene.add(waterGroup);
+}
+
+function updateSwimmingStage(dt) {
+  if (!waterGroup) return;
+
+  // Move canal along with speed
+  waterGroup.position.z += speed * dt;
+
+  // Seamless looping so canal stays under hero throughout 800m - 1000m
+  if (waterGroup.position.z > 60 && distance < waterEndDistance) {
+    waterGroup.position.z = -20;
+  }
+
+  // Animate dynamic water waves
+  if (waterGeometry && waterGeometry.attributes.position) {
+    const positions = waterGeometry.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const z = positions.getZ(i);
+      const wave =
+        Math.sin(x * 2 + waterTime * 4.5) * 0.045 +
+        Math.cos(z * 1.5 + waterTime * 3) * 0.035;
+      positions.setY(i, wave);
+    }
+    positions.needsUpdate = true;
+    waterGeometry.computeVertexNormals();
+  }
+}
+
+function swimAnimation(dt) {
+  waterTime += dt;
+
+  // Floating movement
+  player.position.y = 0.25 + Math.sin(waterTime * 5) * 0.06;
+
+  // Swimming arms
+  arms[0].rotation.x = Math.sin(waterTime * 7) * 1.1;
+  arms[1].rotation.x = -Math.sin(waterTime * 7) * 1.1;
+
+  // Swimming legs
+  legs[0].rotation.x = Math.sin(waterTime * 9) * 0.6;
+  legs[1].rotation.x = -Math.sin(waterTime * 9) * 0.6;
+}
+
+// 3D Hanging Rope Traversal Stage (over deep chasm between two temple platforms)
+function createHangingRopeStage() {
+  ropeGroup = new THREE.Group();
+
+  const gapLength = 100;
+  const ropeBaseY = 5.2;
+  const ropeSag = 1.35;
+
+  // --- 1. Launch Platform (Start) ---
+  const launchPlat = new THREE.Group();
+  launchPlat.position.set(0, 0, 18);
+  box(launchPlat, 8.6, 4.0, 32, M.stone, 0, -2.0, 0);
+  box(launchPlat, 6.2, 0.22, 32, M.path, 0, 0.1, 0);
+
+  // Ancient Launch Gate Pillars holding the rope anchor beam
+  for (const side of [-1, 1]) {
+    box(launchPlat, 1.2, 7.5, 1.2, M.stone, side * 3.6, 3.6, -14);
+    box(launchPlat, 1.5, 0.6, 1.5, M.goldTrim, side * 3.6, 7.4, -14);
+    add(launchPlat, new THREE.SphereGeometry(0.2, 8, 8), M.redCoin, side * 3.6, 7.8, -14);
+  }
+  // Heavy timber cross-beam
+  box(launchPlat, 8.4, 0.7, 0.7, M.wood, 0, 6.8, -14);
+  const coil1 = add(launchPlat, new THREE.TorusGeometry(0.5, 0.16, 8, 16), M.rope, 0, 6.8, -14);
+  coil1.rotation.y = Math.PI / 2;
+  ropeGroup.add(launchPlat);
+
+  // --- 2. Landing Platform (Finish) ---
+  const landPlat = new THREE.Group();
+  landPlat.position.set(0, 0, -gapLength - 18);
+  box(landPlat, 8.6, 4.0, 32, M.stone, 0, -2.0, 0);
+  box(landPlat, 6.2, 0.22, 32, M.path, 0, 0.1, 0);
+
+  // Landing Gate Pillars holding the rope terminus
+  for (const side of [-1, 1]) {
+    box(landPlat, 1.2, 7.5, 1.2, M.stone, side * 3.6, 3.6, 14);
+    box(landPlat, 1.5, 0.6, 1.5, M.goldTrim, side * 3.6, 7.4, 14);
+    add(landPlat, new THREE.SphereGeometry(0.2, 8, 8), M.redCoin, side * 3.6, 7.8, 14);
+  }
+  box(landPlat, 8.4, 0.7, 0.7, M.wood, 0, 6.8, 14);
+  const coil2 = add(landPlat, new THREE.TorusGeometry(0.5, 0.16, 8, 16), M.rope, 0, 6.8, 14);
+  coil2.rotation.y = Math.PI / 2;
+  ropeGroup.add(landPlat);
+
+  // --- 3. Sagging Braided Overhead Rope ---
+  const startZ = 4;
+  const endZ = -gapLength - 4;
+  const curvePoints = [];
+  const segments = 40;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const z = startZ + (endZ - startZ) * t;
+    const y = ropeBaseY - ropeSag * 4 * t * (1 - t);
+    curvePoints.push(new THREE.Vector3(0, y, z));
+  }
+  const ropeCurve = new THREE.CatmullRomCurve3(curvePoints);
+  const ropeGeom = new THREE.TubeGeometry(ropeCurve, 50, 0.16, 10, false);
+  const ropeMesh = new THREE.Mesh(ropeGeom, M.rope);
+  ropeMesh.castShadow = true;
+  ropeGroup.add(ropeMesh);
+
+  // Helical twisted strands for realistic rope twist texture
+  const strandPoints = [];
+  for (let i = 0; i <= segments * 3; i++) {
+    const t = i / (segments * 3);
+    const z = startZ + (endZ - startZ) * t;
+    const y = ropeBaseY - ropeSag * 4 * t * (1 - t);
+    const angle = t * Math.PI * 36;
+    strandPoints.push(new THREE.Vector3(Math.sin(angle) * 0.17, y + Math.cos(angle) * 0.17, z));
+  }
+  const strandCurve = new THREE.CatmullRomCurve3(strandPoints);
+  const strandGeom = new THREE.TubeGeometry(strandCurve, 80, 0.065, 6, false);
+  const strandMesh = new THREE.Mesh(strandGeom, M.ropeStrand);
+  ropeGroup.add(strandMesh);
+
+  // --- 4. Deep Valley, Ruins & Clouds Below the Gap ---
+  for (let i = 0; i < 12; i++) {
+    const z = -5 - i * 8;
+    const spireH = 10 + Math.random() * 12;
+    const spire = add(ropeGroup, new THREE.ConeGeometry(2.0 + Math.random() * 1.5, spireH, 6), M.rock, (Math.random() - 0.5) * 22, -18, z);
+    spire.rotation.y = Math.random() * Math.PI;
+
+    const cloudMesh = add(ropeGroup, new THREE.DodecahedronGeometry(3.6 + Math.random() * 2.2), M.cloud, (Math.random() - 0.5) * 16, -10 + Math.random() * 4, z);
+    cloudMesh.scale.set(1.9, 0.45, 1.3);
+  }
+
+  // --- 5. Floating Collectible Coins along the Rope Route ---
+  const coinPalettes = ['gold', 'red', 'blue', 'green', 'purple'];
+  for (let i = 3; i <= segments - 3; i += 3) {
+    const t = i / segments;
+    const pt = ropeCurve.getPoint(t);
+    const laneOffset = (i % 6 === 0 ? 0 : (i % 6 === 3 ? 1.4 : -1.4));
+    const colName = coinPalettes[(i / 3) % coinPalettes.length];
+    const cMat = colName === 'gold' ? M.gold : M[colName + 'Coin'];
+    const coin = add(
+      ropeGroup,
+      new THREE.TorusGeometry(0.32, 0.09, 8, 18),
+      cMat,
+      laneOffset,
+      pt.y - 1.2,
+      pt.z
+    );
+    coin.rotation.y = Math.PI / 2;
+    coin.userData = {
+      kind: 'ropeCoin',
+      color: colName,
+      isColoured: colName !== 'gold',
+      laneOffset: laneOffset
+    };
+  }
+
+  ropeGroup.position.z = 0;
+  scene.add(ropeGroup);
+}
+
+function updateHangingRopeStage(dt) {
+  if (!ropeGroup) return;
+
+  // Move entire hanging rope scene towards +z
+  ropeGroup.position.z += speed * dt;
+
+  if (hangingOnRope) {
+    ropeSwingT += dt;
+    ropeSlideAudioT += dt;
+    if (ropeSlideAudioT > 0.38) {
+      playSound('ropeSlide');
+      ropeSlideAudioT = 0;
+    }
+
+    // Relative Z inside ropeGroup (gap spans 100 units from z = 4 to z = -96)
+    const currentZInGroup = 3 - ropeGroup.position.z;
+    const t = Math.max(0, Math.min(1, (4 - currentZInGroup) / 100));
+    ropeProgress = t;
+
+    // Height of sagging overhead rope
+    const ropeBaseY = 5.2;
+    const ropeSag = 1.35;
+    const ropeY = ropeBaseY - ropeSag * 4 * t * (1 - t);
+
+    // Hero hangs suspended directly beneath the rope
+    player.position.y = ropeY - 1.85;
+
+    // Hands reach straight UP holding the rope overhead
+    arms[0].rotation.x = 2.92 + Math.sin(ropeSwingT * 5) * 0.1;
+    arms[1].rotation.x = 2.92 - Math.sin(ropeSwingT * 5) * 0.1;
+
+    // Legs swing naturally below with momentum
+    legs[0].rotation.x = Math.sin(ropeSwingT * 4.2) * 0.35;
+    legs[1].rotation.x = Math.sin(ropeSwingT * 4.2 + 0.6) * 0.35;
+
+    // Body swings gently from left to right
+    player.rotation.z = Math.sin(ropeSwingT * 3.5) * 0.14;
+    player.rotation.y = Math.sin(ropeSwingT * 2.8) * 0.08;
+
+    // Gorilla stops at the cliff edge, unable to cross the deep chasm
+    if (gorillaState === "chasing") {
+      gorillaState = "leaving";
+    }
+
+    // Collect coins suspended along the rope route
+    for (let i = ropeGroup.children.length - 1; i >= 0; i--) {
+      const o = ropeGroup.children[i];
+      if (o.userData && o.userData.kind === 'ropeCoin') {
+        o.rotation.z += dt * 4.5;
+        const worldPos = new THREE.Vector3();
+        o.getWorldPosition(worldPos);
+        if (
+          Math.abs(worldPos.z - player.position.z) < 1.3 &&
+          Math.abs(worldPos.x - player.position.x) < 0.95 &&
+          Math.abs(worldPos.y - player.position.y) < 1.5
+        ) {
+          ropeGroup.remove(o);
+          collectCoin(o.userData.color, worldPos);
+        }
+      }
+    }
+
+    // Reached the landing platform on the other side!
+    if (t >= 0.98) {
+      hangingOnRope = false;
+      player.position.y = 0;
+      player.rotation.set(0, 0, 0);
+      playSound('jump');
+      console.log("Hanging Rope Section completed! Landed safely on temple platform.");
+    }
+  }
+
+  // Once the entire section moves past the player, clean it up
+  if (ropeGroup.position.z > 140) {
+    scene.remove(ropeGroup);
+    ropeGroup = null;
+    ropeStage = false;
+    ropeStartDistance = distance + 1200;
+  }
+}
+
+// =========================================================================
+// DOWNWARD ROPE CONNECTION BETWEEN TWO SEPARATE BRIDGES
+// (Upper Wooden Bridge at Y=6.2 -> Empty Gap with Diagonal Rope -> Lower Wooden Bridge at Y=0.2)
+// =========================================================================
+function createDownwardRopeBridgeStage() {
+  if (downwardRopeGroup) return;
+  downwardRopeGroup = new THREE.Group();
+  const g = downwardRopeGroup;
+
+  // --- SECTION A: UPPER WOODEN BRIDGE (High elevation Y = 6.2) ---
+  // 1. Approach Incline Ramp (z from 8 down to -10, ramping from Y = 0 to Y = 6.2)
+  const rampLen = 18;
+  for (let i = 0; i <= 22; i++) {
+    const t = i / 22;
+    const rz = 8 - t * rampLen;
+    const ry = t * 6.2;
+    // Sloping timber planks
+    box(g, 7.8, 0.22, 0.85, i % 2 ? M.bridgePlank : M.bridgeDarkWood, 0, ry, rz);
+    // Supporting stone embankment underneath
+    if (i % 3 === 0) {
+      box(g, 8.4, ry + 1.2, 0.85, M.rock, 0, ry / 2 - 0.6, rz);
+    }
+  }
+
+  // 2. High Upper Bridge Deck (z from -10 to -34, flat at Y = 6.2)
+  const upperLen = 24;
+  for (let i = 0; i < 30; i++) {
+    const pz = -10 - (i / 30) * upperLen;
+    box(g, 7.8, 0.22, 0.82, i % 2 ? M.bridgePlank : M.bridgeDarkWood, 0, 6.2, pz);
+  }
+  // Longitudinal timber stringers under upper deck
+  for (const sx of [-3.5, -1.2, 1.2, 3.5]) {
+    box(g, 0.45, 0.55, upperLen, M.bridgeDarkWood, sx, 5.85, -22);
+  }
+  // Massive stone canyon cliff abutment under upper bridge
+  box(g, 14, 12, upperLen, M.rock, -12, 0, -22);
+  box(g, 14, 12, upperLen, M.rock, 12, 0, -22);
+  // Heavy timber vertical support pilings plunging into ravine
+  for (const pz of [-12, -22, -32]) {
+    for (const px of [-3.5, 3.5]) {
+      add(g, new THREE.CylinderGeometry(0.35, 0.45, 7.2, 8), M.bridgeDarkWood, px, 2.6, pz);
+    }
+    box(g, 7.2, 0.35, 0.35, M.bridgeDarkWood, 0, 3.8, pz);
+  }
+  // Side Railings for Upper Bridge
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 9; i++) {
+      const pz = -10 - i * 2.8;
+      add(g, new THREE.CylinderGeometry(0.12, 0.16, 1.6, 6), M.bridgeDarkWood, side * 3.9, 7.0, pz);
+    }
+    box(g, 0.24, 0.24, upperLen, M.bridgeDarkWood, side * 3.9, 7.65, -22);
+    box(g, 0.12, 0.12, upperLen, M.rope, side * 3.9, 6.95, -22);
+  }
+
+  // 3. Upper Portal Tower & Rope Anchor Crossbeam (at z = -34)
+  for (const side of [-1, 1]) {
+    add(g, new THREE.CylinderGeometry(0.28, 0.35, 5.2, 8), M.bridgeDarkWood, side * 4.1, 8.4, -34);
+    box(g, 0.55, 0.55, 1.6, M.bridgeDarkWood, side * 4.1, 10.8, -34);
+  }
+  // Heavy timber crossbeam where rope is anchored at Y = 8.2
+  box(g, 8.8, 0.45, 0.45, M.bridgeDarkWood, 0, 8.2, -34);
+  // Iron pulley and wound rope coil anchor
+  add(g, new THREE.TorusGeometry(0.35, 0.12, 8, 16), M.wood, 0, 8.2, -34);
+  add(g, new THREE.CylinderGeometry(0.22, 0.22, 0.6, 8), M.rope, 0, 8.2, -34).rotation.z = Math.PI / 2;
+
+  // --- SECTION B: THE MASSIVE EMPTY GAP (z from -34 to -82, length 48) ---
+  // NO ROAD, NO FLOOR, NO PLATFORM, NO STAIRS INSIDE THIS GAP!
+  // Distant canyon walls on extreme sides
+  box(g, 12, 14, 48, M.rock, -15, -1.5, -58);
+  box(g, 12, 14, 48, M.rock, 15, -1.5, -58);
+  // Deep canyon river far below at Y = -6.0
+  const riverGeom = new THREE.PlaneGeometry(16, 48, 16, 24);
+  riverGeom.rotateX(-Math.PI / 2);
+  const riverMesh = new THREE.Mesh(riverGeom, M.water);
+  riverMesh.position.set(0, -6.0, -58);
+  riverMesh.receiveShadow = true;
+  g.add(riverMesh);
+  riverGeometries.push(riverGeom);
+  g.userData.riverWaterGeom = riverGeom;
+
+  // Drifting low valley mist / clouds
+  for (let k = 0; k < 6; k++) {
+    const cloud = add(g, new THREE.DodecahedronGeometry(2.2 + (k % 2) * 0.8), M.cloud, (k % 2 ? -4 : 4), -4.5, -42 - k * 6.5);
+    cloud.scale.set(1.8, 0.45, 1.5);
+  }
+
+  // --- SECTION C: THE DIAGONAL DOWNWARD ROPE ---
+  // Connects upper bridge crossbeam (0, 8.2, -34) to lower bridge crossbeam (0, 2.0, -82)
+  const ropeStart = new THREE.Vector3(0, 8.2, -34);
+  const ropeEnd = new THREE.Vector3(0, 2.0, -82);
+  const ropeCurve = new THREE.LineCurve3(ropeStart, ropeEnd);
+  const mainRope = new THREE.Mesh(new THREE.TubeGeometry(ropeCurve, 36, 0.13, 8, false), M.rope);
+  mainRope.castShadow = true;
+  g.add(mainRope);
+  const strandRope = new THREE.Mesh(new THREE.TubeGeometry(ropeCurve, 36, 0.05, 6, false), M.ropeStrand);
+  g.add(strandRope);
+
+  // Floating Coins suspended in mid-air along the downward diagonal rope
+  const coinsInGap = [];
+  for (let i = 0; i < 7; i++) {
+    const t = (i + 1) / 8;
+    const pt = ropeCurve.getPoint(t);
+    const isColoured = distance >= 300;
+    const coinColor = isColoured ? (i % 2 === 0 ? 'blue' : 'red') : 'yellow';
+    const coinMat = coinColor === 'blue' ? M.blueCoin : (coinColor === 'red' ? M.redCoin : M.gold);
+    const c = new THREE.Group();
+    c.add(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 10, 20), coinMat));
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), coinMat);
+    core.rotation.x = Math.PI / 2;
+    c.add(core);
+    if (isColoured) {
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.46, 16), new THREE.MeshBasicMaterial({
+        color: coinColor === 'blue' ? 0x38b6ff : 0xff3838,
+        transparent: true,
+        opacity: 0.45,
+        side: THREE.DoubleSide
+      }));
+      c.add(halo);
+    }
+    c.position.set(0, pt.y - 0.45, pt.z);
+    c.userData = { kind: 'downwardRopeCoin', color: coinColor, worldY: pt.y - 0.45 };
+    g.add(c);
+    coinsInGap.push(c);
+  }
+  g.userData.coins = coinsInGap;
+
+  // --- SECTION D: LOWER WOODEN BRIDGE (Low elevation Y = 0.2) ---
+  // 1. Lower Entrance Portal Tower & Rope Anchor (at z = -82)
+  for (const side of [-1, 1]) {
+    add(g, new THREE.CylinderGeometry(0.26, 0.32, 4.2, 8), M.bridgeDarkWood, side * 4.1, 2.1, -82);
+    box(g, 0.5, 0.5, 1.4, M.bridgeDarkWood, side * 4.1, 4.1, -82);
+  }
+  // Lower anchor crossbeam receiving the diagonal rope at Y = 2.0
+  box(g, 8.8, 0.4, 0.4, M.bridgeDarkWood, 0, 2.0, -82);
+  add(g, new THREE.TorusGeometry(0.32, 0.1, 8, 16), M.wood, 0, 2.0, -82);
+
+  // 2. Lower Wooden Bridge Deck (z from -82 to -116, length 34 at Y = 0.2)
+  const lowerLen = 34;
+  for (let i = 0; i < 40; i++) {
+    const pz = -82 - (i / 40) * lowerLen;
+    box(g, 7.8, 0.2, 0.82, i % 2 ? M.bridgePlank : M.bridgeDarkWood, 0, 0.2, pz);
+  }
+  // Stringers and lower canyon supports
+  for (const sx of [-3.5, -1.2, 1.2, 3.5]) {
+    box(g, 0.4, 0.45, lowerLen, M.bridgeDarkWood, sx, -0.12, -99);
+  }
+  box(g, 14, 8, lowerLen, M.rock, -12, -3.8, -99);
+  box(g, 14, 8, lowerLen, M.rock, 12, -3.8, -99);
+  // Railings on lower bridge
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 11; i++) {
+      const pz = -82 - i * 3.2;
+      add(g, new THREE.CylinderGeometry(0.12, 0.15, 1.5, 6), M.bridgeDarkWood, side * 3.9, 0.9, pz);
+    }
+    box(g, 0.22, 0.22, lowerLen, M.bridgeDarkWood, side * 3.9, 1.55, -99);
+    box(g, 0.12, 0.12, lowerLen, M.rope, side * 3.9, 0.85, -99);
+  }
+
+  // Smooth ramp transition from lower bridge deck (Y = 0.2) back to normal jungle ground (Y = 0) at z = -116 to -122
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
+    const rz = -116 - t * 6;
+    const ry = (1 - t) * 0.2;
+    box(g, 7.8, 0.18, 0.8, M.path, 0, ry, rz);
+  }
+
+  downwardRopeGroup.position.set(0, 0, -50);
+  scene.add(downwardRopeGroup);
+}
+
+function updateDownwardRopeBridgeStage(dt) {
+  if (!downwardRopeGroup) return;
+  const g = downwardRopeGroup;
+
+  // Move entire two-bridge scene forward with speed
+  g.position.z += speed * dt;
+
+  // Player's Z relative to the group (player is at player.position.z = 3.0)
+  const groupZ = 3.0 - g.position.z;
+
+  // Rotate suspended coins along the diagonal rope and check collection
+  if (g.userData.coins) {
+    for (let i = g.userData.coins.length - 1; i >= 0; i--) {
+      const c = g.userData.coins[i];
+      c.rotation.z += dt * 4.5;
+      c.rotation.y += dt * 2.5;
+
+      const worldPos = new THREE.Vector3();
+      c.getWorldPosition(worldPos);
+
+      if (
+        Math.abs(worldPos.z - player.position.z) < 1.4 &&
+        Math.abs(worldPos.x - player.position.x) < 1.2 &&
+        Math.abs(worldPos.y - player.position.y) < 1.8
+      ) {
+        g.remove(c);
+        g.userData.coins.splice(i, 1);
+        collectCoin(c.userData.color, worldPos);
+      }
+    }
+  }
+
+  // --- STAGE 1: Approach Incline Ramp (groupZ from 8 to -10) ---
+  if (groupZ <= 8 && groupZ > -10) {
+    onBridge = true;
+    const t = Math.max(0, Math.min(1, (8 - groupZ) / 18));
+    bridgeDeckElevation = t * 6.2;
+    player.position.y = bridgeDeckElevation + jump;
+    player.rotation.set(0, 0, 0);
+  }
+
+  // --- STAGE 2: Running across Flat Upper Wooden Bridge (groupZ from -10 to -34) ---
+  else if (groupZ <= -10 && groupZ > -34) {
+    onBridge = true;
+    bridgeDeckElevation = 6.2;
+    const bounce = Math.sin(runT * 15) * 0.04;
+    player.position.y = 6.2 + bounce + jump;
+    player.rotation.set(0, 0, 0);
+  }
+
+  // --- STAGE 3: THE LARGE EMPTY GAP WITH DIAGONAL DOWNWARD ROPE (groupZ from -34 to -82) ---
+  else if (groupZ <= -34 && groupZ > -82) {
+    // Edge of upper bridge reached: Hero jumps and grabs the diagonal rope!
+    if (!slidingDownwardRope) {
+      slidingDownwardRope = true;
+      downwardRopeSlideT = 0;
+      downwardRopeAudioT = 0;
+      jump = 0;
+      jumpV = 0;
+      sliding = false;
+      playSound('jump');
+      playSound('ropeSlide');
+      if (gorillaState === "chasing") gorillaState = "leaving";
+      console.log("Hero jumped and grabbed downward-sloping rope! Sliding diagonally downward.");
+    }
+
+    downwardRopeSlideT += dt;
+    downwardRopeAudioT += dt;
+    if (downwardRopeAudioT > 0.34) {
+      playSound('ropeSlide');
+      downwardRopeAudioT = 0;
+    }
+
+    // Normalized progress t along diagonal rope (from 0 at upper bridge to 1 at lower bridge)
+    const t = Math.max(0, Math.min(1, (-34 - groupZ) / 48));
+
+    // Diagonal rope height: drops from 8.2 down to 2.0 (ΔY = -6.2)
+    const ropeY = 8.2 + t * (-6.2);
+
+    // Hero hangs suspended directly beneath the diagonal rope
+    player.position.y = ropeY - 1.85;
+
+    // Hands reach straight up holding the rope overhead
+    arms[0].rotation.x = 2.92 + Math.sin(downwardRopeSlideT * 6) * 0.08;
+    arms[1].rotation.x = 2.92 - Math.sin(downwardRopeSlideT * 6) * 0.08;
+
+    // Body tilts back slightly with diagonal rope inclination
+    player.rotation.x = -Math.atan2(6.2, 48);
+    player.rotation.z = Math.sin(downwardRopeSlideT * 5) * 0.09;
+
+    // Legs kick and dangle dynamically with slide momentum
+    legs[0].rotation.x = Math.sin(downwardRopeSlideT * 8) * 0.42;
+    legs[1].rotation.x = -Math.sin(downwardRopeSlideT * 8) * 0.42;
+  }
+
+  // --- STAGE 4: Running on Lower Wooden Bridge (groupZ from -82 to -116) ---
+  else if (groupZ <= -82 && groupZ > -116) {
+    // Safe landing on the lower bridge!
+    if (slidingDownwardRope) {
+      slidingDownwardRope = false;
+      player.rotation.set(0, 0, 0);
+      player.position.y = 0.2;
+      playSound('jump');
+      console.log("Hero safely landed on lower bridge! Running continued.");
+    }
+
+    onBridge = true;
+    bridgeDeckElevation = 0.2;
+    const bounce = Math.sin(runT * 15) * 0.03;
+    player.position.y = 0.2 + bounce + jump;
+  }
+
+  // --- STAGE 5: Exit onto normal jungle path (groupZ <= -116) ---
+  else if (groupZ <= -116) {
+    if (onBridge) {
+      onBridge = false;
+      player.position.y = jump;
+      player.rotation.set(0, 0, 0);
+    }
+  }
+
+  // --- CLEANUP when scene moves far behind player ---
+  if (g.position.z > 140) {
+    if (g.userData.riverWaterGeom) {
+      const idx = riverGeometries.indexOf(g.userData.riverWaterGeom);
+      if (idx !== -1) riverGeometries.splice(idx, 1);
+      g.userData.riverWaterGeom.dispose();
+    }
+    scene.remove(g);
+    downwardRopeGroup = null;
+    downwardRopeStage = false;
+    slidingDownwardRope = false;
+    // Schedule next occurrence
+    downwardRopeStageDist = distance + 850;
+    // Avoid canal and rope chasm overlap
+    if (downwardRopeStageDist >= 680 && downwardRopeStageDist <= 1020) downwardRopeStageDist = 1080;
+    if (downwardRopeStageDist >= 1180 && downwardRopeStageDist <= 1380) downwardRopeStageDist = 1420;
+    downwardRopeWarned = false;
+    console.log("Downward Rope Bridge sequence completed! Next scheduled at: " + Math.round(downwardRopeStageDist) + "m");
+  }
+}
+
+function start() {
+  clearItems();
+  if (activeTurn) {
+    scene.remove(activeTurn.mesh);
+    activeTurn = null;
+  }
+  if (waterGroup) {
+    scene.remove(waterGroup);
+    waterGroup = null;
+  }
+  if (ropeGroup) {
+    scene.remove(ropeGroup);
+    ropeGroup = null;
+  }
+  ropeStage = false;
+  hangingOnRope = false;
+  ropeProgress = 0;
+  ropeSwingT = 0;
+  ropeWarned = false;
+  ropeSlideAudioT = 0;
+  ropeStartDistance = 1200;
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+  if (downwardRopeGroup) {
+    if (downwardRopeGroup.userData.riverWaterGeom) {
+      const idx = riverGeometries.indexOf(downwardRopeGroup.userData.riverWaterGeom);
+      if (idx !== -1) riverGeometries.splice(idx, 1);
+      downwardRopeGroup.userData.riverWaterGeom.dispose();
+    }
+    scene.remove(downwardRopeGroup);
+    downwardRopeGroup = null;
+  }
+  downwardRopeStage = false;
+  slidingDownwardRope = false;
+  downwardRopeSlideT = 0;
+  downwardRopeAudioT = 0;
+  downwardRopeWarned = false;
+  downwardRopeStageDist = 450;
+  swimming = false;
+  waterStage = false;
+  waterTime = 0;
+  for (const b of activeBridges) {
+    if (b.userData.riverWaterGeom) {
+      const idx = riverGeometries.indexOf(b.userData.riverWaterGeom);
+      if (idx !== -1) riverGeometries.splice(idx, 1);
+      b.userData.riverWaterGeom.dispose();
+    }
+    scene.remove(b);
+  }
+  activeBridges.length = 0;
+  for (const s of waterSplashes) scene.remove(s);
+  waterSplashes.length = 0;
+  activeBridge = null;
+  onBridge = false;
+  bridgeDeckElevation = 0;
+  bridgeIndex = 0;
+  nextBridgeDist = 160;
+  canalApproachBridgeSpawned = false;
+  waterFlowTime = 0;
+  nextTurnDist = 80;
+  isTurning = false;
+  turnProgress = 0;
+  $('turnAlert').style.display = 'none';
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+
+  // Reset Coin Challenges & Counters
+  yellowCoinsCollected = 0;
+  blueCoinsCollected = 0;
+  redCoinsCollected = 0;
+  colouredCoinsCollected = 0;
+  yellowChallengeCompleted = false;
+  colouredChallengeCompleted = false;
+  shieldRewardClaimed = false;
+  specialTrailIndex = 0;
+  blueCoinsSpawned = 0;
+  redCoinsSpawned = 0;
+  shieldActive = false;
+  shieldTimer = 0;
+  bannerTimer = 0;
+  if ($('shieldHud')) $('shieldHud').style.display = 'none';
+  if ($('rewardBanner')) $('rewardBanner').style.display = 'none';
+  if (shieldMesh) shieldMesh.visible = false;
+  for (const p of coinParticles) scene.remove(p.mesh);
+  coinParticles.length = 0;
+
+  gorillaChasing = false;
+  gorillaChaseHits = 0;
+  gorillaEating = false;
+  gorillaEatTimer = 0;
+  gorillaState = "hidden";
+  gorilla.visible = false;
+  player.visible = true;
+  player.rotation.set(0, 0, 0);
+  camera.rotation.set(0, 0, 0);
+
+  for (let i = 0; i < COUNT; i++) sections[i].position.z = -i * LEN;
+  active = true;
+  distance = 0;
+  coins = 0;
+  speed = 15;
+  lane = 1;
+  jump = 0;
+  jumpV = 0;
+  sliding = false;
+  slideT = 0;
+  spawnT = 0;
+  obstacleT = 0;
+  runT = 0;
+  obstacleHitCooldown = 0;
+  obstacleHits = 0;
+
+  player.position.set(0, 0, 3);
+  player.scale.y = 1;
+
+  gorilla.position.set(0, 0, 10);
+
+  // Play gorilla roar when player starts and begin initial chase
+  playGorillaRoar();
+  startGorillaChase(7);
+
+  if ($('gameOverModal')) $('gameOverModal').style.display = 'none';
+  if ($('infoModal')) $('infoModal').style.display = 'none';
+  $('overlay').style.display = 'none';
+  hud();
+}
+
+function gameOver(title) {
+  if (!active) return;
+  active = false;
+  $('turnAlert').style.display = 'none';
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+  if ($('shieldHud')) $('shieldHud').style.display = 'none';
+  if ($('rewardBanner')) $('rewardBanner').style.display = 'none';
+  if (shieldMesh) shieldMesh.visible = false;
+  shieldActive = false;
+
+  // Persist best stats in localStorage
+  try {
+    const prevBest = parseInt(localStorage.getItem('temple_best_dist') || '0', 10);
+    if (distance > prevBest) localStorage.setItem('temple_best_dist', Math.floor(distance).toString());
+    const prevCoins = parseInt(localStorage.getItem('temple_total_coins') || '0', 10);
+    localStorage.setItem('temple_total_coins', (prevCoins + coins).toString());
+  } catch(e) {}
+
+  if (title.includes('GORILLA') || title.includes('ATE')) {
+    playGorillaAttackSound();
+  } else {
+    playSound('crash');
+  }
+
+  if ($('goTitle')) $('goTitle').textContent = title;
+  if ($('goDesc')) {
+    const coinStats = `Yellow: ${yellowCoinsCollected}/300 · Blue: ${blueCoinsCollected}/50 · Red: ${redCoinsCollected}/50`;
+    $('goDesc').textContent = title.includes('ATE')
+      ? `You hit obstacles more than once and the gorilla devoured you!\n\nDistance: ${Math.floor(distance)} m · Total Coins: ${coins}\n${coinStats}`
+      : `Distance: ${Math.floor(distance)} m · Total Coins: ${coins}\n${coinStats}`;
+  }
+  if ($('gameOverModal')) $('gameOverModal').style.display = 'flex';
+  $('overlay').style.display = 'flex';
+}
+
+function showModal(title, html) {
+  if (!$('infoModal')) return;
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = html;
+  $('infoModal').style.display = 'flex';
+}
+
+function hideModal() {
+  if ($('infoModal')) $('infoModal').style.display = 'none';
+}
+
+if ($('modalCloseBtn')) $('modalCloseBtn').onclick = hideModal;
+if ($('infoModal')) {
+  $('infoModal').onclick = (e) => {
+    if (e.target === $('infoModal')) hideModal();
+  };
+}
+
+if ($('btnObjectives')) {
+  $('btnObjectives').onclick = (e) => {
+    e.stopPropagation();
+    showModal('OBJECTIVES', `
+      <ul class="info-list">
+        <li><strong>🪙 300 Yellow Coins Challenge:</strong> Collect 300 yellow coins (0m–300m) to master the gold challenge!</li>
+        <li><strong>💎 100 Coloured Coins Challenge:</strong> After 300m, collect 50 Blue & 50 Red coins to unleash the 10-Second Invincible Shield!</li>
+        <li><strong>🪢 Downward Rope Bridge:</strong> Reach 450m to sprint along the high upper bridge, jump & grab the downward diagonal rope across the empty canyon gap, and land safely on the lower bridge!</li>
+        <li><strong>🏊 Canal Swimming:</strong> Reach 800 metres to plunge into the 3D stone canal and swim 200 metres through flowing water!</li>
+        <li><strong>🪢 Hanging Rope Chasm:</strong> Reach 1200 metres to grab the overhead rope and cross the deep valley!</li>
+        <li><strong>🦍 Escape the Gorilla:</strong> Stay ahead of the angry ape. Hitting obstacles more than once gets you devoured!</li>
+        <li><strong>↩️ 90° Temple Corners:</strong> Watch for the golden turn alert and turn sharp left or right before hitting the stone dead end!</li>
+      </ul>
+    `);
+  };
+}
+
+if ($('btnStats')) {
+  $('btnStats').onclick = (e) => {
+    e.stopPropagation();
+    let bestDist = 0, totalCoins = 0;
+    try {
+      bestDist = localStorage.getItem('temple_best_dist') || '0';
+      totalCoins = localStorage.getItem('temple_total_coins') || '0';
+    } catch(e) {}
+    showModal('GAME STATS', `
+      <ul class="info-list">
+        <li><strong>🏃 Best Distance:</strong> ${Math.max(parseInt(bestDist || 0), Math.floor(distance))} m</li>
+        <li><strong>💰 Total Coins:</strong> ${parseInt(totalCoins || 0) + coins}</li>
+        <li><strong>🪙 Yellow Coins:</strong> ${yellowCoinsCollected} / 300</li>
+        <li><strong>💎 Blue Coins:</strong> ${blueCoinsCollected} / 50</li>
+        <li><strong>🔴 Red Coins:</strong> ${redCoinsCollected} / 50</li>
+        <li><strong>⚡ Speed Multiplier:</strong> ${(speed / 15).toFixed(1)}x</li>
+      </ul>
+    `);
+  };
+}
+
+if ($('btnStore')) {
+  $('btnStore').onclick = (e) => {
+    e.stopPropagation();
+    showModal('STORE & POWERUPS', `
+      <ul class="info-list">
+        <li><strong>🛡️ Invincible Energy Shield:</strong> Automatically triggers when 100 coloured coins are collected. Smashes all logs and stone blocks for 10 seconds!</li>
+        <li><strong>🔴 Red Coin (2x):</strong> Glowing rubies worth 2 gold coins each!</li>
+        <li><strong>🔵 Blue Coin (3x):</strong> Glowing sapphires worth 3 gold coins each!</li>
+        <li><strong>🟢 Green & 🟣 Purple Coins:</strong> Exotic temple gemstones to power your shield!</li>
+      </ul>
+    `);
+  };
+}
+
+if ($('btnOptions')) {
+  $('btnOptions').onclick = (e) => {
+    e.stopPropagation();
+    showModal('OPTIONS', `
+      <ul class="info-list">
+        <li><strong>🔊 Sound:</strong> <button id="optSoundBtn" style="padding:6px 14px; background:#ffd700; border:none; border-radius:8px; font-weight:bold; cursor:pointer">${soundEnabled ? 'MUTE SOUND' : 'ENABLE SOUND'}</button></li>
+        <li><strong>🦍 Gorilla Roar:</strong> Realistic roar plays automatically at START.</li>
+        <li><strong>📊 Reset Best Stats:</strong> <button id="optResetBtn" style="padding:6px 14px; background:#ff4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer">RESET DATA</button></li>
+      </ul>
+    `);
+    const optSoundBtn = $('optSoundBtn');
+    if (optSoundBtn) {
+      optSoundBtn.onclick = () => {
+        soundEnabled = !soundEnabled;
+        optSoundBtn.textContent = soundEnabled ? 'MUTE SOUND' : 'ENABLE SOUND';
+        $('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+      };
+    }
+    const optResetBtn = $('optResetBtn');
+    if (optResetBtn) {
+      optResetBtn.onclick = () => {
+        try { localStorage.clear(); } catch(e) {}
+        alert('Stats have been reset!');
+        hideModal();
+      };
+    }
+  };
+}
+
+if ($('btnControls')) {
+  $('btnControls').onclick = (e) => {
+    e.stopPropagation();
+    showModal('CONTROLS', `
+      <ul class="info-list">
+        <li><strong>💻 Desktop Keyboard:</strong></li>
+        <li>&nbsp;• <strong>A / D</strong> or <strong>← / →</strong>: Change Lanes & Turn Corners</li>
+        <li>&nbsp;• <strong>W / ↑ / Space</strong>: Jump over obstacles</li>
+        <li>&nbsp;• <strong>S / ↓</strong>: Slide under barriers</li>
+        <li><strong>📱 Mobile Touch:</strong></li>
+        <li>&nbsp;• Swipe Left / Right to steer and turn</li>
+        <li>&nbsp;• Swipe Up to jump · Swipe Down to slide</li>
+        <li>&nbsp;• Or use on-screen touch buttons</li>
+      </ul>
+    `);
+  };
+}
+
+if ($('restartBtn')) {
+  $('restartBtn').addEventListener('click', () => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    start();
+  });
+}
+
+function act(a) {
+  if (!active || gorillaEating) return;
+
+  // Check turn execution when approaching corner
+  if (activeTurn && !activeTurn.turned && activeTurn.mesh.position.z >= -3.5 && activeTurn.mesh.position.z <= 4.2) {
+    if (a === activeTurn.dir) {
+      executeTurn(a);
+      return;
+    }
+  }
+
+  // Allow lane changes while swimming
+  if (a === "left") {
+    lane = Math.max(0, lane - 1);
+  }
+  if (a === "right") {
+    lane = Math.min(2, lane + 1);
+  }
+
+  // Hanging on rope or sliding down diagonal rope replaces jumping and sliding, while allowing lateral steering for coins
+  if (hangingOnRope || slidingDownwardRope) return;
+
+  // Swimming replaces jumping and sliding
+  if (swimming) return;
+
+  if (a === "jump" && jump === 0 && !sliding) {
+    jumpV = 8.8;
+    playSound('jump');
+  }
+  if (a === "slide" && jump === 0 && !sliding) {
+    sliding = true;
+    slideT = 0.72;
+    player.scale.y = 0.58;
+    playSound('slide');
+  }
+}
+
+$('start').addEventListener('click', () => {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  start();
+});
+
+if ($('posterImg')) {
+  $('posterImg').addEventListener('click', (e) => {
+    const rect = $('posterImg').getBoundingClientRect();
+    const yRatio = (e.clientY - rect.top) / rect.height;
+    if (yRatio < 0.74) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      start();
+    }
+  });
+}
+
+addEventListener('keydown', e => {
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
+  if (!active && (e.key === ' ' || e.key === 'Enter')) {
+    start();
+    return;
+  }
+  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') act('left');
+  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') act('right');
+  if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key === ' ') act('jump');
+  if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') act('slide');
+});
+
+document.querySelectorAll('#touch button').forEach(b => b.onclick = () => act(b.dataset.a));
+
+let touch = null;
+addEventListener('touchstart', e => {
+  touch = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+}, { passive: true });
+
+addEventListener('touchend', e => {
+  if (!touch) return;
+  let dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) > 28) {
+    if (Math.abs(dx) > Math.abs(dy)) act(dx > 0 ? 'right' : 'left');
+    else act(dy < 0 ? 'jump' : 'slide');
+  }
+  touch = null;
+}, { passive: true });
+
+// Main animation
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.035);
+
+  if (active) {
+    runT += dt;
+    distance += speed * dt * 1.5;
+    speed = Math.min(27, speed + dt * 0.18);
+    moveForest(dt);
+
+    // --- Realistic River & Bridges Loop Update ---
+    updateRiverWater(dt);
+    updateBridges(dt);
+
+    // --- Grand Water Canal Section (720m to 1000m) ---
+    // Phase 1: Canal Approach Stone Bridge (720m to 780m) - Hero crosses high above flowing canal waters
+    if (distance >= 720 && distance < 780 && !canalApproachBridgeSpawned && !activeBridge) {
+      canalApproachBridgeSpawned = true;
+      if (!waterStage) {
+        createSwimmingStage();
+        waterStage = true;
+        swimming = false; // Hero runs over stone bridge, does not swim yet!
+      }
+      spawnBridge('stone', -25, true);
+      console.log("Canal Approach Bridge: Hero running across stone bridge above water!");
+    }
+
+    // Phase 2: Canal Swimming Section (780m to 940m) - Hero plunges into canal and swims
+    if (distance >= 780 && distance < 940 && !swimming && waterStage) {
+      swimming = true;
+      onBridge = false;
+      activeBridge = null;
+      createWaterSplash(player.position.x, 0.15, 0); // Hero plunges into water!
+      playSound('jump');
+      console.log("Hero entered the canal water: Swimming section started!");
+    }
+
+    // Swimming animation & canal wave update
+    if (swimming) {
+      swimAnimation(dt);
+      if (waterGroup) updateSwimmingStage(dt);
+      // Continuous splashing & water ripples around hero while swimming
+      if (Math.random() < 0.22) {
+        createWaterSplash(player.position.x + (Math.random() - 0.5) * 0.8, 0.15, player.position.z + (Math.random() - 0.5) * 0.8);
+      }
+    }
+
+    // Phase 3: Canal Exit Wooden Footbridge (940m to 1000m) - Hero emerges from water onto footbridge
+    if (distance >= 940 && distance < 1000 && swimming) {
+      swimming = false;
+      player.rotation.x = 0;
+      createWaterSplash(player.position.x, 0.15, 0); // Exit splash!
+      spawnBridge('wooden', -22, true);
+      console.log("Hero stepped out of canal water onto wooden exit footbridge!");
+    }
+
+    // Phase 4: Canal completed at 1000m - Smoothly return to normal jungle running path
+    if (distance >= 1000 && waterStage) {
+      waterStage = false;
+      swimming = false;
+      if (waterGroup) {
+        if (waterGeometry) {
+          const idx = riverGeometries.indexOf(waterGeometry);
+          if (idx !== -1) riverGeometries.splice(idx, 1);
+        }
+        scene.remove(waterGroup);
+        waterGroup = null;
+      }
+      player.position.y = 0;
+      player.rotation.x = 0;
+      console.log("Water canal completed! Running resumed on normal jungle path.");
+    }
+
+    // Periodic bridge traversal over river canyons (outside canal, downward rope, & turns)
+    if (!activeTurn && !waterStage && !ropeStage && !downwardRopeStage && !activeBridge && distance >= nextBridgeDist) {
+      const type = bridgeTypes[bridgeIndex % bridgeTypes.length];
+      spawnBridge(type);
+      bridgeIndex++;
+      nextBridgeDist = distance + 175 + Math.random() * 45;
+      if (nextTurnDist < distance + 55) nextTurnDist = distance + 75;
+    }
+
+    // Warning Alert 60m before Downward Rope Bridge Stage
+    if (distance >= downwardRopeStageDist - 60 && distance < downwardRopeStageDist && !downwardRopeWarned) {
+      downwardRopeWarned = true;
+      if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'block';
+    }
+
+    // Start Downward Rope Bridge Stage at downwardRopeStageDist (450m)
+    if (distance >= downwardRopeStageDist && !downwardRopeStage && !waterStage && !ropeStage && !activeTurn && !activeBridge) {
+      downwardRopeStage = true;
+      if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+      createDownwardRopeBridgeStage();
+      console.log("Downward Rope Bridge Stage started at " + Math.round(distance) + "m!");
+    }
+
+    // Update Downward Rope Bridge Stage
+    if (downwardRopeStage && downwardRopeGroup) {
+      updateDownwardRopeBridgeStage(dt);
+    }
+
+    // Hanging rope warning alert 100 metres before
+    if (distance >= ropeStartDistance - 100 && distance < ropeStartDistance && !ropeWarned) {
+      ropeWarned = true;
+      if ($('ropeAlert')) $('ropeAlert').style.display = 'block';
+    }
+
+    // Start Hanging Rope Section at ropeStartDistance (1200m)
+    if (distance >= ropeStartDistance && !ropeStage) {
+      ropeStage = true;
+      if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+      createHangingRopeStage();
+      hangingOnRope = true;
+      ropeProgress = 0;
+      ropeSwingT = 0;
+      ropeSlideAudioT = 0;
+      jump = 1.1; // Jump and grab overhead rope
+      playSound('jump');
+      playSound('ropeSlide');
+      console.log("Hanging Rope Section started!");
+    }
+
+    // Update Hanging Rope Stage and Hero Hanging Animation
+    if (ropeStage && ropeGroup) {
+      updateHangingRopeStage(dt);
+    }
+
+    spawnT += dt;
+    obstacleT += dt;
+
+    // Spawn Left/Right Turns periodically (if not in water canal, not on hanging rope, not on downward rope bridge, and not on bridge)
+    if (!activeTurn && !waterStage && !ropeStage && !downwardRopeStage && !activeBridge && distance >= nextTurnDist) {
+      const dir = Math.random() < 0.5 ? 'left' : 'right';
+      spawnTurn(dir);
+      nextTurnDist = distance + 110 + Math.random() * 50;
+    }
+
+    // Obstacles do not spawn during swimming, hanging rope, downward rope bridge, turns, or on bridges
+    if (!waterStage && !ropeStage && !downwardRopeStage && !activeBridge && (!activeTurn || activeTurn.mesh.position.z < -45)) {
+      if (obstacleT > 1.25) {
+        obstacle();
+        obstacleT = 0;
+      }
+    }
+
+    // Collectible coins along running trail and water canal (when not in rope chasm and not in downward rope gap)
+    if (!ropeStage && !downwardRopeStage && (!activeTurn || activeTurn.mesh.position.z < -45)) {
+      const spawnInterval = distance < 300 ? 0.42 : 0.65;
+      if (spawnT > spawnInterval) {
+        coinTrail();
+        spawnT = 0;
+      }
+    }
+
+    player.position.x += (lanes[lane] - player.position.x) * Math.min(1, dt * 13);
+    if (jumpV !== 0 || jump > 0) {
+      jump += jumpV * dt;
+      jumpV -= 22 * dt;
+      if (jump <= 0) {
+        jump = 0;
+        jumpV = 0;
+      }
+    }
+
+    if (!swimming && !hangingOnRope && !slidingDownwardRope && !gorillaEating && !onBridge) {
+      player.position.y = jump;
+    }
+
+    if (sliding) {
+      slideT -= dt;
+      if (slideT <= 0) {
+        sliding = false;
+        player.scale.y = 1;
+      }
+    }
+
+    if (!sliding && !swimming && !hangingOnRope && !slidingDownwardRope && !gorillaEating) {
+      legs[0].rotation.x = Math.sin(runT * 13) * 0.7;
+      legs[1].rotation.x = -legs[0].rotation.x;
+      arms[0].rotation.x = -legs[0].rotation.x * 0.7;
+      arms[1].rotation.x = -arms[0].rotation.x;
+    }
+
+    // Update shield countdown & visual sphere
+    if (shieldActive) {
+      shieldTimer -= dt;
+      if (shieldTimer <= 0) {
+        shieldActive = false;
+        shieldTimer = 0;
+        if ($('shieldHud')) $('shieldHud').style.display = 'none';
+        if (shieldMesh) shieldMesh.visible = false;
+      } else {
+        if ($('shieldHud')) {
+          $('shieldHud').style.display = 'block';
+          $('shieldTimer').textContent = shieldTimer.toFixed(1);
+        }
+        if (shieldMesh) {
+          shieldMesh.visible = true;
+          shieldMesh.rotation.y += dt * 3.5;
+          shieldMesh.rotation.z += dt * 2.0;
+          const pulse = 1.0 + Math.sin(runT * 12) * 0.08;
+          shieldMesh.scale.set(pulse, pulse, pulse);
+        }
+      }
+    }
+
+    // Update reward banner display timer
+    if (bannerTimer > 0) {
+      bannerTimer -= dt;
+      if (bannerTimer <= 0 && $('rewardBanner')) {
+        $('rewardBanner').style.display = 'none';
+      }
+    }
+
+    const targetCamY = player.position.y + 4.8;
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, Math.min(1, dt * 5.0));
+    camera.position.x += (player.position.x * 0.22 - camera.position.x) * dt * 3;
+    camera.lookAt(player.position.x * 0.12, player.position.y + 0.9, -7);
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const o = items[i];
+      o.position.z += speed * dt;
+
+      if (o.userData.kind === 'coin') {
+        o.rotation.z += dt * 4.5;
+        o.rotation.y += dt * 2.5;
+
+        // Floating bob effect
+        if (o.userData.baseY !== undefined) {
+          o.position.y = o.userData.baseY + Math.sin(runT * 4 + (o.userData.animOffset || 0)) * 0.12;
+        }
+
+        if (
+          Math.abs(o.position.z - 3) < 0.95 &&
+          Math.abs(o.position.x - player.position.x) < 0.95 &&
+          Math.abs(o.position.y - (jump + 1.1)) < 1.3
+        ) {
+          const worldPos = new THREE.Vector3();
+          o.getWorldPosition(worldPos);
+          collectCoin(o.userData.color, worldPos);
+          scene.remove(o);
+          items.splice(i, 1);
+          continue;
+        }
+      } else if (
+        !swimming &&
+        !hangingOnRope &&
+        !slidingDownwardRope &&
+        Math.abs(o.position.z - 3) < 0.9 &&
+        Math.abs(o.position.x - player.position.x) < 0.95
+      ) {
+        // Invincible shield protects hero from obstacles
+        if (shieldActive) {
+          scene.remove(o);
+          items.splice(i, 1);
+          playSound('shieldSmash');
+          continue;
+        }
+
+        const avoided =
+          o.userData.type === "log"
+            ? (sliding || jump > 0.65)
+            : jump > 1.05;
+
+        if (!avoided && obstacleHitCooldown <= 0) {
+          obstacleHitCooldown = 1.0;
+
+          // Remove the hit obstacle
+          scene.remove(o);
+          items.splice(i, 1);
+
+          playSound('crash');
+
+          // Trigger Gorilla Chase on 1st hit, or Gorilla Eat Capture on 2nd hit
+          startGorillaChase(5);
+
+          continue;
+        }
+      }
+
+      if (o.position.z > 14) {
+        scene.remove(o);
+        items.splice(i, 1);
+      }
+    }
+
+    // Update active turn section
+    if (activeTurn) {
+      activeTurn.mesh.position.z += speed * dt;
+
+      // Show turn alert when approaching
+      if (!activeTurn.turned && activeTurn.mesh.position.z >= -40 && activeTurn.mesh.position.z <= 4.2) {
+        $('turnText').textContent = activeTurn.dir === 'left' ? '◀ ◀ TURN LEFT ◀ ◀' : '▶ ▶ TURN RIGHT ▶ ▶';
+        $('turnAlert').style.display = 'block';
+      } else if (!isTurning) {
+        $('turnAlert').style.display = 'none';
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+      }
+
+      // Missed turn: crashed into dead-end temple wall
+      if (!activeTurn.turned && activeTurn.mesh.position.z > 4.4) {
+        $('turnAlert').style.display = 'none';
+  if ($('ropeAlert')) $('ropeAlert').style.display = 'none';
+  if ($('downwardRopeAlert')) $('downwardRopeAlert').style.display = 'none';
+        gameOver('MISSED THE TURN!');
+      }
+
+      // Cleanup passed turn
+      if (activeTurn && activeTurn.mesh.position.z > 22) {
+        scene.remove(activeTurn.mesh);
+        activeTurn = null;
+      }
+    }
+
+    // Corner turning animation with camera banking
+    if (isTurning) {
+      turnProgress += dt / 0.32;
+      const p = Math.min(1, turnProgress);
+      // Lean runner into the turn
+      player.rotation.y = (turnDir === 'left' ? -Math.PI / 2 : Math.PI / 2) * p;
+      // Camera swing and banking
+      camera.rotation.y = (turnDir === 'left' ? 0.35 : -0.35) * Math.sin(p * Math.PI);
+      camera.rotation.z = (turnDir === 'left' ? -0.15 : 0.15) * Math.sin(p * Math.PI);
+
+      if (turnProgress >= 1) {
+        isTurning = false;
+        player.rotation.set(0, 0, 0);
+        camera.rotation.set(0, 0, 0);
+        lane = 1;
+        player.position.x = lanes[1];
+        if (gorilla) gorilla.position.x = 0;
+        if (activeTurn) {
+          scene.remove(activeTurn.mesh);
+          activeTurn = null;
+        }
+        for (let i = 0; i < COUNT; i++) sections[i].position.z = -i * LEN;
+      }
+    }
+
+    // Reduce obstacle collision cooldown
+    obstacleHitCooldown = Math.max(0, obstacleHitCooldown - dt);
+
+    // Update Gorilla Chase and Gorilla Eating capture sequences
+    updateGorillaChase(dt);
+    updateGorillaEating(dt);
+
+    // Gorilla runs away into the forest when chase ends
+    if (gorillaState === "leaving") {
+      gorilla.position.z += 14 * dt;
+      gorilla.position.y = Math.abs(Math.sin(runT * 10)) * 0.08;
+
+      if (gorilla.position.z > 22) {
+        gorilla.visible = false;
+        gorillaState = "hidden";
+      }
+    }
+
+    // Update coin sparkle particle burst effects
+    updateCoinParticles(dt);
+
+    hud();
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+});
+</script>
+</body>
+</html>

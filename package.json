@@ -1,0 +1,12 @@
+{
+  "name": "temple-runner",
+  "version": "1.0.0",
+  "description": "Temple Run–Style 3D Endless Runner Game using Three.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
+
